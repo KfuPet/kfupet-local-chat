@@ -28,6 +28,7 @@ namespace kfupet_local_chat
         private readonly ModelDeploymentService _deployment = new();
 
         private ConsoleWindow? _consoleWindow;
+        private bool _closing;
         private PerformanceSampler? _sampler;
         private RunRecord? _lastRun;
         private DateTime _runStartedAt;
@@ -42,6 +43,8 @@ namespace kfupet_local_chat
             EngineView.ModelSwitchRequested += OnModelSwitchRequested;
             Closed += (_, _) =>
             {
+                _closing = true;
+                _consoleWindow?.Close();
                 _runtime.Dispose();
                 _ = _sampler?.StopAsync();
             };
@@ -463,8 +466,25 @@ namespace kfupet_local_chat
                 return;
             }
 
-            _consoleWindow = new ConsoleWindow(_runtime) { Owner = this };
-            _consoleWindow.Closed += (_, _) => _consoleWindow = null;
+            _consoleWindow = new ConsoleWindow(_runtime);
+            _consoleWindow.Closed += (_, _) =>
+            {
+                _consoleWindow = null;
+
+                if (_closing)
+                {
+                    return;
+                }
+
+                // 控制台关闭后回到主窗口，省去手动从任务栏点回来
+                if (WindowState == WindowState.Minimized)
+                {
+                    WindowState = WindowState.Normal;
+                }
+
+                Show();
+                Activate();
+            };
             _consoleWindow.Show();
             LogView.Append("[控制台] 已打开启动控制台。");
         }
