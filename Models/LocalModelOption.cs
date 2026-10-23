@@ -11,6 +11,12 @@ namespace kfupet_local_chat.Models
 
         public required long DownloadSizeBytes { get; init; }
 
+        /// <summary>GGUF 文件名，下载后落盘用。</summary>
+        public required string FileName { get; init; }
+
+        /// <summary>按优先级排列的下载地址，失败时依次尝试。</summary>
+        public required IReadOnlyList<string> DownloadUrls { get; init; }
+
         /// <summary>最低独显显存要求，0 表示不依赖独显。</summary>
         public required long MinVramBytes { get; init; }
 

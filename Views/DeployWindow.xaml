@@ -17,6 +17,25 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
+        <Style x:Key="ThinProgressBar" TargetType="ProgressBar">
+            <Setter Property="Height" Value="6" />
+            <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+            <Setter Property="Background" Value="{StaticResource LineBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}" CornerRadius="3" />
+                            <Grid x:Name="PART_Track">
+                                <Border x:Name="PART_Indicator" Background="{TemplateBinding Foreground}"
+                                        CornerRadius="3" HorizontalAlignment="Left" />
+                            </Grid>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="ModelItemStyle" TargetType="ListBoxItem">
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -98,6 +117,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,16">
@@ -156,13 +176,34 @@
             </Grid>
         </Border>
 
-        <Grid Grid.Row="3" Margin="0,16,0,0">
+        <!-- 下载进度 -->
+        <Border x:Name="DownloadPanel" Grid.Row="3" Visibility="Collapsed" Margin="0,14,0,0"
+                Background="White" CornerRadius="10" BorderBrush="{StaticResource LineBrush}"
+                BorderThickness="1" Padding="14,12">
+            <StackPanel>
+                <Grid>
+                    <TextBlock x:Name="ProgressTitleText" Text="正在下载模型…" FontSize="12" FontWeight="SemiBold" />
+                    <TextBlock x:Name="ProgressPercentText" Text="0%" FontSize="12" FontWeight="SemiBold"
+                               Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Right" />
+                </Grid>
+                <ProgressBar x:Name="DownloadProgressBar" Style="{StaticResource ThinProgressBar}"
+                             Minimum="0" Maximum="100" Value="0" Margin="0,8,0,6" />
+                <Grid>
+                    <TextBlock x:Name="ProgressDetailText" Text="准备中…" FontSize="11"
+                               Foreground="{StaticResource FaintBrush}" />
+                    <TextBlock x:Name="ProgressSpeedText" Text="" FontSize="11"
+                               Foreground="{StaticResource FaintBrush}" HorizontalAlignment="Right" />
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="4" Margin="0,16,0,0">
             <TextBlock x:Name="SelectionText" Text="尚未选择模型" FontSize="11.5"
                        Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" />
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="取消" Style="{StaticResource GhostButton}" Padding="18,9"
+                <Button x:Name="CancelButton" Content="取消" Style="{StaticResource GhostButton}" Padding="18,9"
                         Margin="0,0,10,0" Click="OnCancelClick" />
-                <Button Content="下一步" Style="{StaticResource PrimaryButton}" Padding="20,9"
+                <Button x:Name="NextButton" Content="下一步" Style="{StaticResource PrimaryButton}" Padding="20,9"
                         Click="OnNextClick" />
             </StackPanel>
         </Grid>

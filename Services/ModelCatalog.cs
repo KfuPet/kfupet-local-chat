@@ -21,7 +21,13 @@ namespace kfupet_local_chat.Services
                 Name = "Qwen3-1.7B-Instruct",
                 Parameters = "1.7B",
                 Quantization = "Q4_K_M",
-                DownloadSizeBytes = (long)(1.5 * GbUnit),
+                DownloadSizeBytes = (long)(1.11 * GbUnit),
+                FileName = "Qwen3-1.7B-Q4_K_M.gguf",
+                DownloadUrls = new[]
+                {
+                    "https://hf-mirror.com/unsloth/Qwen3-1.7B-GGUF/resolve/main/Qwen3-1.7B-Q4_K_M.gguf?download=true",
+                    "https://huggingface.co/unsloth/Qwen3-1.7B-GGUF/resolve/main/Qwen3-1.7B-Q4_K_M.gguf?download=true"
+                },
                 MinVramBytes = (long)(2 * GbUnit),
                 MinRamBytes = (long)(4 * GbUnit),
                 RecommendedVramBytes = (long)(4 * GbUnit),
@@ -35,7 +41,13 @@ namespace kfupet_local_chat.Services
                 Name = "Qwen3-4B-Instruct-2507",
                 Parameters = "4B",
                 Quantization = "Q4_K_M",
-                DownloadSizeBytes = (long)(3 * GbUnit),
+                DownloadSizeBytes = (long)(2.5 * GbUnit),
+                FileName = "Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+                DownloadUrls = new[]
+                {
+                    "https://hf-mirror.com/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q4_K_M.gguf?download=true",
+                    "https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q4_K_M.gguf?download=true"
+                },
                 MinVramBytes = (long)(4 * GbUnit),
                 MinRamBytes = (long)(8 * GbUnit),
                 RecommendedVramBytes = (long)(6 * GbUnit),
@@ -50,7 +62,13 @@ namespace kfupet_local_chat.Services
                 Name = "Qwen3-8B",
                 Parameters = "8B",
                 Quantization = "Q4_K_M",
-                DownloadSizeBytes = (long)(5 * GbUnit),
+                DownloadSizeBytes = (long)(5.03 * GbUnit),
+                FileName = "Qwen3-8B-Q4_K_M.gguf",
+                DownloadUrls = new[]
+                {
+                    "https://hf-mirror.com/unsloth/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q4_K_M.gguf?download=true",
+                    "https://huggingface.co/unsloth/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q4_K_M.gguf?download=true"
+                },
                 MinVramBytes = (long)(6 * GbUnit),
                 MinRamBytes = (long)(8 * GbUnit),
                 RecommendedVramBytes = (long)(8 * GbUnit),
@@ -70,6 +88,8 @@ namespace kfupet_local_chat.Services
                 Parameters = m.Parameters,
                 Quantization = m.Quantization,
                 DownloadSizeBytes = m.DownloadSizeBytes,
+                FileName = m.FileName,
+                DownloadUrls = m.DownloadUrls,
                 MinVramBytes = m.MinVramBytes,
                 MinRamBytes = m.MinRamBytes,
                 RecommendedVramBytes = m.RecommendedVramBytes,

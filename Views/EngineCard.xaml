@@ -20,8 +20,33 @@
                 </Grid>
             </Border>
 
-            <Button Content="下载模型" Tag="下载模型" Style="{StaticResource PrimaryButton}"
-                    Margin="0,10,0,0" />
+            <Button x:Name="DownloadButton" Content="下载模型" Tag="下载模型"
+                    Style="{StaticResource PrimaryButton}" Margin="0,10,0,0" />
+
+            <!-- 已部署后显示的模型管理区 -->
+            <StackPanel x:Name="ManagePanel" Visibility="Collapsed" Margin="0,12,0,0">
+                <Border Background="{StaticResource SoftBrush}" CornerRadius="8" Padding="12,10"
+                        BorderBrush="{StaticResource LineBrush}" BorderThickness="1">
+                    <StackPanel>
+                        <Grid>
+                            <TextBlock x:Name="ModelNameText" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{StaticResource InkBrush}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="ModelSizeText" FontSize="11"
+                                       Foreground="{StaticResource FaintBrush}" HorizontalAlignment="Right" />
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                            <Ellipse x:Name="StateDot" Width="8" Height="8" Fill="#A1A1AA"
+                                     VerticalAlignment="Center" />
+                            <TextBlock x:Name="RuntimeStatusText" Text="已停止" FontSize="11"
+                                       Foreground="{StaticResource MutedBrush}" Margin="7,0,0,0"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Button x:Name="UninstallButton" Content="卸载模型" Tag="卸载模型"
+                        Style="{StaticResource GhostButton}" Margin="0,10,0,0" Padding="8,8" />
+            </StackPanel>
 
             <Border Background="{StaticResource SoftBrush}" CornerRadius="8" Padding="12,10"
                     BorderBrush="{StaticResource LineBrush}" BorderThickness="1" Margin="0,12,0,0">
@@ -30,7 +55,7 @@
                                Foreground="{StaticResource InkBrush}" TextTrimming="CharacterEllipsis" />
                     <TextBlock x:Name="HwVramText" Text=" " FontSize="11"
                                Foreground="{StaticResource MutedBrush}" Margin="0,3,0,0" />
-                    <TextBlock x:Name="HwSysText" Text="点击上方按钮读取本机配置" FontSize="11"
+                    <TextBlock x:Name="HwSysText" Text="点击“下载模型”读取本机配置" FontSize="11"
                                Foreground="{StaticResource FaintBrush}" Margin="0,2,0,0" />
                 </StackPanel>
             </Border>
