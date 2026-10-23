@@ -1,0 +1,115 @@
+using kfupet_local_chat.Models;
+
+namespace kfupet_local_chat.Services
+{
+    /// <summary>本地模型目录与推荐规则：三档模型按本机显存 / 内存标注状态，并选出一个推荐项。</summary>
+    public static class ModelCatalog
+    {
+        private const double GbUnit = 1024d * 1024d * 1024d;
+
+        /// <summary>容量判定容差：8GB 显卡的实际可用显存通常略低于标称值。</summary>
+        private const double Tolerance = 0.95;
+
+        public const string StatusSmooth = "可流畅运行";
+        public const string StatusLow = "可运行（配置偏低）";
+        public const string StatusInsufficient = "配置不足";
+
+        public static IReadOnlyList<LocalModelOption> All { get; } = new List<LocalModelOption>
+        {
+            new()
+            {
+                Name = "Qwen3-1.7B-Instruct",
+                Parameters = "1.7B",
+                Quantization = "Q4_K_M",
+                DownloadSizeBytes = (long)(1.5 * GbUnit),
+                MinVramBytes = (long)(2 * GbUnit),
+                MinRamBytes = (long)(4 * GbUnit),
+                RecommendedVramBytes = (long)(4 * GbUnit),
+                RecommendedRamBytes = (long)(8 * GbUnit),
+                CpuFallbackAllowed = true,
+                RequirementText = "无独显也可运行 · 最低内存 4 GB",
+                Note = "最轻量档，台词与情绪判断够用"
+            },
+            new()
+            {
+                Name = "Qwen3-4B-Instruct-2507",
+                Parameters = "4B",
+                Quantization = "Q4_K_M",
+                DownloadSizeBytes = (long)(3 * GbUnit),
+                MinVramBytes = (long)(4 * GbUnit),
+                MinRamBytes = (long)(8 * GbUnit),
+                RecommendedVramBytes = (long)(6 * GbUnit),
+                RecommendedRamBytes = (long)(16 * GbUnit),
+                CpuFallbackAllowed = true,
+                RequirementText = "最低显存 4 GB · 内存 8 GB",
+                Note = "默认档，短句与 JSON 提取都稳",
+                IsDefault = true
+            },
+            new()
+            {
+                Name = "Qwen3-8B",
+                Parameters = "8B",
+                Quantization = "Q4_K_M",
+                DownloadSizeBytes = (long)(5 * GbUnit),
+                MinVramBytes = (long)(6 * GbUnit),
+                MinRamBytes = (long)(8 * GbUnit),
+                RecommendedVramBytes = (long)(8 * GbUnit),
+                RecommendedRamBytes = (long)(16 * GbUnit),
+                CpuFallbackAllowed = false,
+                RequirementText = "最低显存 6 GB · 内存 8 GB · 纯 CPU 不可用",
+                Note = "质量档，中文语感更好"
+            }
+        };
+
+        /// <summary>为当前硬件计算每个模型的运行状态，并选出推荐档（能流畅运行的最大模型）。</summary>
+        public static IReadOnlyList<LocalModelOption> Recommend(HardwareInfo hardware)
+        {
+            var options = All.Select(m => new LocalModelOption
+            {
+                Name = m.Name,
+                Parameters = m.Parameters,
+                Quantization = m.Quantization,
+                DownloadSizeBytes = m.DownloadSizeBytes,
+                MinVramBytes = m.MinVramBytes,
+                MinRamBytes = m.MinRamBytes,
+                RecommendedVramBytes = m.RecommendedVramBytes,
+                RecommendedRamBytes = m.RecommendedRamBytes,
+                CpuFallbackAllowed = m.CpuFallbackAllowed,
+                RequirementText = m.RequirementText,
+                Note = m.Note,
+                IsDefault = m.IsDefault
+            }).ToList();
+
+            foreach (var option in options)
+            {
+                var ramFits = hardware.TotalRamBytes >= option.MinRamBytes * Tolerance;
+                var vramFits = hardware.DedicatedVideoMemoryBytes >= option.MinVramBytes * Tolerance;
+                var cpuFits = option.CpuFallbackAllowed && ramFits;
+
+                if (!ramFits || (!vramFits && !cpuFits))
+                {
+                    option.CanRun = false;
+                    option.StatusText = StatusInsufficient;
+                    continue;
+                }
+
+                option.CanRun = true;
+                var smooth = vramFits &&
+                             hardware.DedicatedVideoMemoryBytes >= option.RecommendedVramBytes * Tolerance &&
+                             hardware.TotalRamBytes >= option.RecommendedRamBytes * Tolerance;
+
+                option.StatusText = smooth ? StatusSmooth : StatusLow;
+            }
+
+            var recommended = options.LastOrDefault(o => o.StatusText == StatusSmooth)
+                              ?? options.LastOrDefault(o => o.CanRun);
+
+            if (recommended != null)
+            {
+                recommended.IsRecommended = true;
+            }
+
+            return options;
+        }
+    }
+}

@@ -1,0 +1,42 @@
+<UserControl x:Class="kfupet_local_chat.Views.EngineCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border Style="{StaticResource Card}">
+        <StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <Border Width="3" Height="12" CornerRadius="2" Background="{StaticResource AccentBrush}"
+                        VerticalAlignment="Center" Margin="0,0,8,0" />
+                <TextBlock Text="本地推理引擎" Style="{StaticResource SectionTitle}" />
+            </StackPanel>
+
+            <TextBlock Style="{StaticResource FieldLabel}" Text="运行方式" />
+            <Border Background="{StaticResource SoftBrush}" CornerRadius="8" Padding="10,9"
+                    BorderBrush="{StaticResource LineBrush}" BorderThickness="1">
+                <Grid>
+                    <TextBlock Text="LLamaSharp（进程内）" FontSize="12"
+                               Foreground="{StaticResource InkBrush}" />
+                    <TextBlock Text="内置，无需安装" FontSize="11"
+                               Foreground="{StaticResource FaintBrush}" HorizontalAlignment="Right" />
+                </Grid>
+            </Border>
+
+            <Button Content="下载模型" Tag="下载模型" Style="{StaticResource PrimaryButton}"
+                    Margin="0,10,0,0" />
+
+            <Border Background="{StaticResource SoftBrush}" CornerRadius="8" Padding="12,10"
+                    BorderBrush="{StaticResource LineBrush}" BorderThickness="1" Margin="0,12,0,0">
+                <StackPanel>
+                    <TextBlock x:Name="HwGpuText" Text="尚未检测" FontSize="12"
+                               Foreground="{StaticResource InkBrush}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="HwVramText" Text=" " FontSize="11"
+                               Foreground="{StaticResource MutedBrush}" Margin="0,3,0,0" />
+                    <TextBlock x:Name="HwSysText" Text="点击上方按钮读取本机配置" FontSize="11"
+                               Foreground="{StaticResource FaintBrush}" Margin="0,2,0,0" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Style="{StaticResource HintText}" Margin="0,10,0,0"
+                       Text="LLamaSharp 已内置在应用里，用户无需安装 Ollama 等外部服务。" />
+        </StackPanel>
+    </Border>
+</UserControl>
