@@ -1,9 +1,12 @@
+using System.IO;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Media3D;
+using Microsoft.Win32;
 using kfupet_local_chat.Models;
 using kfupet_local_chat.Services;
 using kfupet_local_chat.Views;
@@ -22,6 +25,8 @@ namespace kfupet_local_chat
 
         private readonly LocalModelRuntime _runtime = new();
         private readonly ModelDeploymentService _deployment = new();
+
+        private ConsoleWindow? _consoleWindow;
 
         public MainWindow()
         {
@@ -45,7 +50,7 @@ namespace kfupet_local_chat
 
             var panels = new FrameworkElement[]
             {
-                DataSourceView, EngineView, ScopeView, ActionView, ResultView, LogView
+                DataSourceView, EngineView, ActionView, ResultView, LogView
             };
 
             for (var i = 0; i < panels.Length; i++)
@@ -92,6 +97,12 @@ namespace kfupet_local_chat
                     return;
                 case "下载模型":
                     DetectAndShowModels();
+                    return;
+                case "启动控制台":
+                    ShowConsole();
+                    return;
+                case "导出报告":
+                    ExportReport();
                     return;
                 case "运行本地":
                     await StartModelAsync();
@@ -333,6 +344,67 @@ namespace kfupet_local_chat
                     _runtime.IsRunning ? EngineRunningBrush : EngineIdleBrush, _runtime.IsRunning);
                 LogView.Append($"[本地模型] 卸载失败：{ex.Message}");
                 MessageBox.Show(this, $"卸载失败：\n{ex.Message}", "卸载模型",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>打开调试控制台；已打开时直接激活原窗口。</summary>
+        private void ShowConsole()
+        {
+            if (_consoleWindow is { IsVisible: true })
+            {
+                _consoleWindow.Activate();
+                return;
+            }
+
+            _consoleWindow = new ConsoleWindow { Owner = this };
+            _consoleWindow.Closed += (_, _) => _consoleWindow = null;
+            _consoleWindow.Show();
+            LogView.Append("[控制台] 已打开启动控制台。");
+        }
+
+        /// <summary>导出当前硬件、引擎、模型与日志的快照报告。</summary>
+        private void ExportReport()
+        {
+            try
+            {
+                var hardware = HardwareProbe.Detect();
+                var deployed = _deployment.Load();
+                var content = ReportService.Build(
+                    hardware, deployed, EngineView.SelectedDevice,
+                    _runtime.IsRunning, StatusText.Text, LogView.GetLines());
+
+                var dialog = new SaveFileDialog
+                {
+                    Title = "导出运行报告",
+                    Filter = "Markdown 文件 (*.md)|*.md|文本文件 (*.txt)|*.txt",
+                    FilterIndex = 1,
+                    DefaultExt = ".md",
+                    AddExtension = true,
+                    FileName = $"KfuPet本地模型报告_{DateTime.Now:yyyyMMdd_HHmmss}.md"
+                };
+
+                var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                if (Directory.Exists(documents))
+                {
+                    dialog.InitialDirectory = documents;
+                }
+
+                if (dialog.ShowDialog(this) != true)
+                {
+                    LogView.Append("[报告] 已取消导出。");
+                    return;
+                }
+
+                File.WriteAllText(dialog.FileName, content, new UTF8Encoding(false));
+                LogView.Append($"[报告] 已导出：{dialog.FileName}");
+                MessageBox.Show(this, $"报告已导出到：\n{dialog.FileName}", "导出报告",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                LogView.Append($"[报告] 导出失败：{ex.Message}");
+                MessageBox.Show(this, $"导出失败：\n{ex.Message}", "导出报告",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

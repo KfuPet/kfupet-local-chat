@@ -77,7 +77,6 @@
                 <StackPanel>
                     <views:DataSourceCard x:Name="DataSourceView" Loaded="DataSourceView_Loaded" />
                     <views:EngineCard x:Name="EngineView" Loaded="EngineView_Loaded" />
-                    <views:ScopeCard x:Name="ScopeView" />
                 </StackPanel>
             </ScrollViewer>
 

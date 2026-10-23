@@ -39,6 +39,15 @@ namespace kfupet_local_chat.Views
             LogList.Items.Clear();
         }
 
+        /// <summary>读取当前全部日志文本，供导出报告使用。</summary>
+        public IReadOnlyList<string> GetLines()
+        {
+            return LogList.Items
+                .OfType<ListBoxItem>()
+                .Select(item => (item.Content as TextBlock)?.Text ?? item.Content?.ToString() ?? string.Empty)
+                .ToList();
+        }
+
         /// <summary>清空按钮由面板自己处理，并阻止事件继续冒泡到主窗口的统一分发。</summary>
         private void OnClearClick(object sender, RoutedEventArgs e)
         {
