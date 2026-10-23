@@ -1,3 +1,9 @@
+<p>
+  <a href="README.md"><img src="https://img.shields.io/badge/%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-%E5%BD%93%E5%89%8D-1f6feb?style=flat-square" alt="简体中文"></a>
+  <a href="docs/README-en-US.md"><img src="https://img.shields.io/badge/English-%E6%9F%A5%E7%9C%8B-6e7781?style=flat-square" alt="English"></a>
+  <a href="docs/README-ja-JP.md"><img src="https://img.shields.io/badge/%E6%97%A5%E6%9C%AC%E8%AA%9E-%E8%A1%A8%E7%A4%BA-6e7781?style=flat-square" alt="日本語"></a>
+</p>
+
 # kfupet-local-chat
 
 > ⚠️ Important: This is **NOT the KfuPet desktop pet main project** .
