@@ -43,6 +43,11 @@ namespace kfupet_local_chat.Models
 
         public bool IsRecommended { get; set; }
 
+        /// <summary>该模型已经下载并部署在本机，列表中置灰且不可选择。</summary>
+        public bool IsDownloaded { get; set; }
+
+        public bool ShowDownloadedBadge => IsDownloaded;
+
         /// <summary>产品默认档（4B），与硬件无关。</summary>
         public bool IsDefault { get; init; }
 

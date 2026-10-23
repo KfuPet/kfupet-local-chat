@@ -31,10 +31,17 @@ namespace kfupet_local_chat.Views
             HwCpuText.Text = $"{hardware.LogicalCores} 线程";
             UpdateStoragePath();
 
+            var downloaded = _deployment.LoadAll();
+            foreach (var option in options)
+            {
+                option.IsDownloaded = downloaded.Any(m =>
+                    string.Equals(m.FileName, option.FileName, StringComparison.OrdinalIgnoreCase));
+            }
+
             ModelList.ItemsSource = options;
-            ModelList.SelectedItem = options.FirstOrDefault(o => o.IsRecommended)
-                                     ?? options.FirstOrDefault(o => o.CanRun)
-                                     ?? options.FirstOrDefault();
+            ModelList.SelectedItem = options.FirstOrDefault(o => o.IsRecommended && !o.IsDownloaded)
+                                     ?? options.FirstOrDefault(o => o.CanRun && !o.IsDownloaded)
+                                     ?? options.FirstOrDefault(o => !o.IsDownloaded);
             UpdateSelectionText();
 
             Closing += OnWindowClosing;
@@ -119,6 +126,13 @@ namespace kfupet_local_chat.Views
                 return;
             }
 
+            if (option.IsDownloaded)
+            {
+                MessageBox.Show(this, "该模型已经下载并部署，无需重复下载。", "下一步",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
             if (!option.CanRun)
             {
                 var vramText = _hardware.HasDedicatedGpu
@@ -176,7 +190,7 @@ namespace kfupet_local_chat.Views
                 DownloadProgressBar.Value = value.Percent;
                 ProgressPercentText.Text = $"{value.Percent:0}%";
                 ProgressDetailText.Text = $"已下载 {value.ReceivedText} / {value.TotalText}";
-                ProgressSpeedText.Text = value.SpeedText;
+                ProgressSpeedText.Text = $"{value.SpeedText} · {value.EtaText}";
             });
 
             try

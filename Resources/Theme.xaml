@@ -340,6 +340,9 @@
         </Setter>
     </Style>
 
+    <!-- 让全应用（含 ListBox / ComboBox 内部）的滚动条统一使用细样式 -->
+    <Style TargetType="ScrollBar" BasedOn="{StaticResource ThinScrollBar}" />
+
     <!-- 使用细滚动条的 ScrollViewer，供左栏使用 -->
     <Style x:Key="ThinScrollViewer" TargetType="ScrollViewer">
         <Setter Property="Template">

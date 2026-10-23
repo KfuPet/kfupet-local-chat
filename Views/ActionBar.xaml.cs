@@ -10,6 +10,12 @@ namespace kfupet_local_chat.Views
             InitializeComponent();
         }
 
+        /// <summary>完整跑完一次（启动后停止）才允许导出报告。</summary>
+        public void SetExportEnabled(bool enabled)
+        {
+            ExportButton.IsEnabled = enabled;
+        }
+
         /// <summary>刷新运行按钮：未部署时禁用，运行中显示“停止本地”，加载 / 停止 / 卸载过程中显示进行态。</summary>
         public void UpdateRunState(bool hasModel, bool running, bool busy, string? busyText = null)
         {

@@ -20,8 +20,8 @@
                         Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" />
                 <Button Content="启动控制台" Tag="启动控制台" Style="{StaticResource GhostButton}"
                         Margin="0,0,8,0" />
-                <Button Content="导出报告" Tag="导出报告" Style="{StaticResource GhostButton}"
-                        Margin="0,0,8,0" />
+                <Button x:Name="ExportButton" Content="导出报告" Tag="导出报告" IsEnabled="False"
+                        Style="{StaticResource GhostButton}" Margin="0,0,8,0" />
                 <Button Content="清空结果" Tag="清空结果" Style="{StaticResource GhostButton}" />
             </UniformGrid>
         </Grid>

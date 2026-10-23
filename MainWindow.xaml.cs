@@ -1,4 +1,5 @@
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -27,12 +28,23 @@ namespace kfupet_local_chat
         private readonly ModelDeploymentService _deployment = new();
 
         private ConsoleWindow? _consoleWindow;
+        private PerformanceSampler? _sampler;
+        private RunRecord? _lastRun;
+        private DateTime _runStartedAt;
+        private HardwareInfo? _runHardware;
+        private DeployedModel? _runDeployed;
+        private InferenceDevice _runDevice;
 
         public MainWindow()
         {
             InitializeComponent();
             Loaded += OnWindowLoaded;
-            Closed += (_, _) => _runtime.Dispose();
+            EngineView.ModelSwitchRequested += OnModelSwitchRequested;
+            Closed += (_, _) =>
+            {
+                _runtime.Dispose();
+                _ = _sampler?.StopAsync();
+            };
 
             // 子面板里的按钮不逐个订阅事件，统一在这里按 Tag 分发；
             // 面板内部已处理（并标记 Handled）的按钮不再进入这里
@@ -77,7 +89,7 @@ namespace kfupet_local_chat
             }
 
             LogView.Append("试点台已启动：本地模型可按需下载、启动与卸载。");
-            RefreshDeployedState();
+            RefreshModelLibrary(log: true);
         }
 
         /// <summary>按钮事件分发：冒泡到窗口时用 OriginalSource 找回真正的按钮，再按 Tag 处理。</summary>
@@ -140,6 +152,14 @@ namespace kfupet_local_chat
         /// <summary>检测本机硬件，按显存与内存给出可部署模型列表。</summary>
         private void DetectAndShowModels()
         {
+            if (_runtime.IsRunning)
+            {
+                LogView.Append("[部署] 本地模型正在运行，请先停止后再下载其他模型。");
+                MessageBox.Show(this, "请先停止正在运行的本地模型，再下载其他模型。", "下载模型",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
             try
             {
                 var hardware = HardwareProbe.Detect();
@@ -151,10 +171,10 @@ namespace kfupet_local_chat
                 var dialog = new DeployWindow(hardware, options) { Owner = this };
                 if (dialog.ShowDialog() == true && dialog.DeployedModel is { } deployed)
                 {
-                    EngineView.ShowDeployedModel(deployed);
+                    EngineView.ShowModels(_deployment.LoadAll(), deployed);
                     ActionView.UpdateRunState(true, false, false);
                     SetEngineStatus("本地引擎：未加载", EngineIdleBrush, running: false);
-                    LogView.Append($"[部署] {deployed.ModelName} 已下载并部署：{deployed.FilePath}");
+                    LogView.Append($"[部署] {deployed.ModelName} 已下载并切换为当前模型：{deployed.FilePath}");
                 }
                 else
                 {
@@ -167,11 +187,12 @@ namespace kfupet_local_chat
             }
         }
 
-        /// <summary>启动时检查是否已有部署记录，有则切换到管理状态，但不自动加载模型。</summary>
-        private void RefreshDeployedState()
+        /// <summary>刷新已下载模型列表与当前模型；没有模型时显示下载入口。</summary>
+        private void RefreshModelLibrary(bool log = false)
         {
-            var deployed = _deployment.Load();
-            if (deployed == null)
+            var models = _deployment.LoadAll();
+            var active = _deployment.LoadActive();
+            if (active == null)
             {
                 EngineView.ShowDownloadMode();
                 ActionView.UpdateRunState(false, false, false);
@@ -179,10 +200,42 @@ namespace kfupet_local_chat
                 return;
             }
 
-            EngineView.ShowDeployedModel(deployed);
+            EngineView.ShowModels(models, active);
             ActionView.UpdateRunState(true, false, false);
             SetEngineStatus("本地引擎：未加载", EngineIdleBrush, running: false);
-            LogView.Append($"[本地模型] 检测到已部署模型：{deployed.ModelName}（{deployed.SizeText}），未启动。");
+
+            if (log)
+            {
+                LogView.Append($"[本地模型] 当前模型：{active.ModelName}（{active.SizeText}），" +
+                               $"共 {models.Count} 个已下载，未启动。");
+            }
+        }
+
+        /// <summary>切换当前使用的模型；运行中不允许切换，避免文件被占用。</summary>
+        private void OnModelSwitchRequested(string fileName)
+        {
+            if (_runtime.IsRunning)
+            {
+                LogView.Append("[本地模型] 模型运行中，切换前请先停止。");
+                MessageBox.Show(this, "请先停止正在运行的本地模型，再切换模型。", "切换模型",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                RefreshModelLibrary();
+                return;
+            }
+
+            var models = _deployment.LoadAll();
+            var target = models.FirstOrDefault(m =>
+                string.Equals(m.FileName, fileName, StringComparison.OrdinalIgnoreCase));
+
+            if (target == null)
+            {
+                RefreshModelLibrary();
+                return;
+            }
+
+            _deployment.SetActive(target.FileName);
+            RefreshModelLibrary();
+            LogView.Append($"[本地模型] 已切换为：{target.ModelName}（{target.SizeText}）");
         }
 
         /// <summary>更新右上角引擎状态：文字、指示灯颜色；运行中停止呼吸动画。</summary>
@@ -213,7 +266,7 @@ namespace kfupet_local_chat
                 return;
             }
 
-            var deployed = _deployment.Load();
+            var deployed = _deployment.LoadActive();
             if (deployed == null)
             {
                 EngineView.ShowDownloadMode();
@@ -243,6 +296,13 @@ namespace kfupet_local_chat
 
             var gpuLayers = useGpu ? 999 : 0;
 
+            _runStartedAt = DateTime.Now;
+            _runHardware = hardware;
+            _runDeployed = deployed;
+            _runDevice = device;
+            _sampler = new PerformanceSampler();
+            _sampler.Start();
+
             EngineView.ShowHardware(hardware);
             EngineView.UpdateRuntime(false, true, "正在加载模型…");
             ActionView.UpdateRunState(true, false, true, "正在加载…");
@@ -262,6 +322,12 @@ namespace kfupet_local_chat
             }
             catch (Exception ex)
             {
+                if (_sampler != null)
+                {
+                    await _sampler.StopAsync();
+                    _sampler = null;
+                }
+
                 EngineView.UpdateRuntime(false, false, "启动失败");
                 ActionView.UpdateRunState(true, false, false);
                 SetEngineStatus("本地引擎：加载失败", EngineFailedBrush, running: false);
@@ -286,16 +352,23 @@ namespace kfupet_local_chat
             ActionView.UpdateRunState(true, true, true, "正在停止…");
             SetEngineStatus("本地引擎：正在停止…", EngineIdleBrush, running: false);
             await Task.Run(() => _runtime.Stop());
+
+            var samples = _sampler != null
+                ? await _sampler.StopAsync()
+                : Array.Empty<PerformanceSample>();
+            _sampler = null;
+
             EngineView.UpdateRuntime(false, false, "已停止");
             ActionView.UpdateRunState(true, false, false);
             SetEngineStatus("本地引擎：未加载", EngineIdleBrush, running: false);
             LogView.Append("[本地模型] 已结束，占用已释放。");
+            CompleteRun(samples);
         }
 
         /// <summary>卸载模型：先结束运行，再删除模型文件与部署记录。</summary>
         private async Task UninstallModelAsync()
         {
-            var deployed = _deployment.Load();
+            var deployed = _deployment.LoadActive();
             if (deployed == null)
             {
                 EngineView.ShowDownloadMode();
@@ -306,8 +379,8 @@ namespace kfupet_local_chat
 
             var confirm = MessageBox.Show(
                 this,
-                $"确认卸载 {deployed.ModelName}？\n\n将删除本地模型文件（{deployed.SizeText}），" +
-                "下次使用需要重新下载。",
+                $"确认卸载 {deployed.ModelName}？\n\n将删除它的本地模型文件（{deployed.SizeText}），" +
+                "其他已下载模型会保留。",
                 "卸载模型",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
@@ -327,21 +400,46 @@ namespace kfupet_local_chat
                 if (wasRunning)
                 {
                     await Task.Run(() => _runtime.Stop());
+
+                    var samples = _sampler != null
+                        ? await _sampler.StopAsync()
+                        : Array.Empty<PerformanceSample>();
+                    _sampler = null;
+                    CompleteRun(samples);
                 }
 
                 _deployment.DeleteFiles(deployed);
-                EngineView.ShowDownloadMode();
-                ActionView.UpdateRunState(false, false, false);
-                SetEngineStatus("本地引擎：未部署", EngineEmptyBrush, running: false);
-                LogView.Append($"[本地模型] 已卸载：{deployed.ModelName}");
+                RefreshModelLibrary();
+
+                var remaining = _deployment.LoadActive();
+                if (remaining == null)
+                {
+                    LogView.Append($"[本地模型] 已卸载：{deployed.ModelName}，当前没有可用模型。");
+                }
+                else
+                {
+                    LogView.Append($"[本地模型] 已卸载：{deployed.ModelName}，已切换到 {remaining.ModelName}。");
+                }
             }
             catch (Exception ex)
             {
-                EngineView.ShowDeployedModel(deployed);
-                EngineView.UpdateRuntime(_runtime.IsRunning, false, _runtime.IsRunning ? "已启动" : "已停止");
-                ActionView.UpdateRunState(true, _runtime.IsRunning, false);
-                SetEngineStatus(_runtime.IsRunning ? "本地引擎：已加载" : "本地引擎：未加载",
-                    _runtime.IsRunning ? EngineRunningBrush : EngineIdleBrush, _runtime.IsRunning);
+                var models = _deployment.LoadAll();
+                var active = _deployment.LoadActive();
+                if (active != null)
+                {
+                    EngineView.ShowModels(models, active);
+                    EngineView.UpdateRuntime(_runtime.IsRunning, false, _runtime.IsRunning ? "已启动" : "已停止");
+                    ActionView.UpdateRunState(true, _runtime.IsRunning, false);
+                    SetEngineStatus(_runtime.IsRunning ? "本地引擎：已加载" : "本地引擎：未加载",
+                        _runtime.IsRunning ? EngineRunningBrush : EngineIdleBrush, _runtime.IsRunning);
+                }
+                else
+                {
+                    EngineView.ShowDownloadMode();
+                    ActionView.UpdateRunState(false, false, false);
+                    SetEngineStatus("本地引擎：未部署", EngineEmptyBrush, running: false);
+                }
+
                 LogView.Append($"[本地模型] 卸载失败：{ex.Message}");
                 MessageBox.Show(this, $"卸载失败：\n{ex.Message}", "卸载模型",
                     MessageBoxButton.OK, MessageBoxImage.Error);
@@ -363,25 +461,51 @@ namespace kfupet_local_chat
             LogView.Append("[控制台] 已打开启动控制台。");
         }
 
-        /// <summary>导出当前硬件、引擎、模型与日志的快照报告。</summary>
+        /// <summary>记录一次完整运行；只有存在记录时导出按钮才可用。</summary>
+        private void CompleteRun(IReadOnlyList<PerformanceSample> samples)
+        {
+            if (samples.Count == 0 || _runHardware == null)
+            {
+                return;
+            }
+
+            _lastRun = new RunRecord
+            {
+                StartedAt = _runStartedAt,
+                EndedAt = DateTime.Now,
+                Hardware = _runHardware,
+                Model = _runDeployed,
+                Device = _runDevice,
+                Samples = samples,
+                Logs = LogView.GetLines().ToList()
+            };
+
+            ActionView.SetExportEnabled(true);
+            LogView.Append($"[报告] 本次运行已记录（采样 {samples.Count} 次），可导出报告。");
+        }
+
+        /// <summary>导出最近一次完整运行的报告：report.md + charts.html 打包为 zip。</summary>
         private void ExportReport()
         {
+            if (_lastRun is not { } run)
+            {
+                LogView.Append("[报告] 请先完整运行一次（启动后停止）再导出。");
+                return;
+            }
+
             try
             {
-                var hardware = HardwareProbe.Detect();
-                var deployed = _deployment.Load();
-                var content = ReportService.Build(
-                    hardware, deployed, EngineView.SelectedDevice,
-                    _runtime.IsRunning, StatusText.Text, LogView.GetLines());
+                var markdown = ReportService.BuildMarkdown(run);
+                var html = ReportService.BuildHtml(run);
 
                 var dialog = new SaveFileDialog
                 {
                     Title = "导出运行报告",
-                    Filter = "Markdown 文件 (*.md)|*.md|文本文件 (*.txt)|*.txt",
+                    Filter = "ZIP 压缩包 (*.zip)|*.zip",
                     FilterIndex = 1,
-                    DefaultExt = ".md",
+                    DefaultExt = ".zip",
                     AddExtension = true,
-                    FileName = $"KfuPet本地模型报告_{DateTime.Now:yyyyMMdd_HHmmss}.md"
+                    FileName = $"KfuPet本地模型报告_{run.StartedAt:yyyyMMdd_HHmmss}.zip"
                 };
 
                 var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
@@ -396,10 +520,15 @@ namespace kfupet_local_chat
                     return;
                 }
 
-                File.WriteAllText(dialog.FileName, content, new UTF8Encoding(false));
+                using (var archive = ZipFile.Open(dialog.FileName, ZipArchiveMode.Create))
+                {
+                    WriteZipEntry(archive, "report.md", markdown);
+                    WriteZipEntry(archive, "charts.html", html);
+                }
+
                 LogView.Append($"[报告] 已导出：{dialog.FileName}");
-                MessageBox.Show(this, $"报告已导出到：\n{dialog.FileName}", "导出报告",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(this, $"报告已导出到：\n{dialog.FileName}\n\n包含 report.md 与 charts.html。",
+                    "导出报告", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -407,6 +536,13 @@ namespace kfupet_local_chat
                 MessageBox.Show(this, $"导出失败：\n{ex.Message}", "导出报告",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private static void WriteZipEntry(ZipArchive archive, string name, string content)
+        {
+            var entry = archive.CreateEntry(name, CompressionLevel.Optimal);
+            using var writer = new StreamWriter(entry.Open(), new UTF8Encoding(false));
+            writer.Write(content);
         }
 
         private void DataSourceView_Loaded(object sender, RoutedEventArgs e)

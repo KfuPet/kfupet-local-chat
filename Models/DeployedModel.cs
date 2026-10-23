@@ -14,5 +14,8 @@ namespace kfupet_local_chat.Models
         public required DateTime DeployedAt { get; init; }
 
         public string SizeText => $"{SizeBytes / 1024d / 1024d / 1024d:0.00} GB";
+
+        /// <summary>模型选择下拉框里显示的文本。</summary>
+        public string DisplayText => $"{ModelName}（{SizeText}）";
     }
 }

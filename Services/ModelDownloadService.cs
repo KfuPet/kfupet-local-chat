@@ -12,15 +12,52 @@ namespace kfupet_local_chat.Services
             ? Math.Clamp(ReceivedBytes * 100d / TotalBytes, 0, 100)
             : 0;
 
-        public string ReceivedText => $"{ReceivedBytes / 1024d / 1024d:0.0} MB";
+        public string ReceivedText => FormatBytes(ReceivedBytes);
 
-        public string TotalText => TotalBytes > 0
-            ? $"{TotalBytes / 1024d / 1024d / 1024d:0.00} GB"
-            : "未知";
+        public string TotalText => TotalBytes > 0 ? FormatBytes(TotalBytes) : "未知";
 
         public string SpeedText => BytesPerSecond > 0
             ? $"{BytesPerSecond / 1024d / 1024d:0.0} MB/s"
             : "—";
+
+        /// <summary>预计剩余秒数；速度或总量未知时为空。</summary>
+        public double? RemainingSeconds => BytesPerSecond > 0 && TotalBytes > 0
+            ? Math.Max(0, (TotalBytes - ReceivedBytes) / BytesPerSecond)
+            : null;
+
+        public string EtaText => RemainingSeconds is { } seconds
+            ? $"剩余 {FormatDuration(seconds)}"
+            : "剩余时间计算中…";
+
+        private static string FormatBytes(long bytes)
+        {
+            if (bytes >= 1024L * 1024 * 1024)
+            {
+                return $"{bytes / 1024d / 1024d / 1024d:0.##} GB";
+            }
+
+            if (bytes >= 1024L * 1024)
+            {
+                return $"{bytes / 1024d / 1024d:0.0} MB";
+            }
+
+            return $"{bytes / 1024d:0.0} KB";
+        }
+
+        private static string FormatDuration(double seconds)
+        {
+            if (seconds >= 3600)
+            {
+                return $"{(int)(seconds / 3600)} 小时 {(int)(seconds % 3600 / 60)} 分";
+            }
+
+            if (seconds >= 60)
+            {
+                return $"{(int)(seconds / 60)} 分 {(int)(seconds % 60)} 秒";
+            }
+
+            return $"{(int)seconds} 秒";
+        }
     }
 
     /// <summary>把 GGUF 模型下载到本地，支持多地址回退与取消。</summary>
@@ -109,7 +146,8 @@ namespace kfupet_local_chat.Services
                 var elapsed = stopwatch.Elapsed;
                 if (elapsed - lastReport >= TimeSpan.FromMilliseconds(250))
                 {
-                    speed = (receivedBytes - lastBytes) / (elapsed - lastReport).TotalSeconds;
+                    var instantSpeeds = (receivedBytes - lastBytes) / (elapsed - lastReport).TotalSeconds;
+                    speed = speed <= 0 ? instantSpeeds : speed * 0.7 + instantSpeeds * 0.3;
                     lastReport = elapsed;
                     lastBytes = receivedBytes;
                     progress?.Report(new DownloadProgress(receivedBytes, totalBytes, speed));

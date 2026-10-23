@@ -21,7 +21,8 @@
             </Border>
 
             <TextBlock Style="{StaticResource FieldLabel}" Text="推理设备" Margin="0,10,0,4" />
-            <ComboBox x:Name="DeviceCombo" SelectionChanged="OnDeviceChanged">
+            <ComboBox x:Name="DeviceCombo" SelectionChanged="OnDeviceChanged"
+                      PreviewMouseWheel="OnComboPreviewMouseWheel">
                 <ComboBoxItem Content="自动（按显存判断）" />
                 <ComboBoxItem Content="GPU 加速" />
                 <ComboBoxItem Content="纯 CPU" />
@@ -32,15 +33,22 @@
 
             <!-- 已部署后显示的模型管理区 -->
             <StackPanel x:Name="ManagePanel" Visibility="Collapsed" Margin="0,12,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="已下载模型" Margin="0,0,0,4" />
+                <ComboBox x:Name="ModelCombo" TextSearch.TextPath="DisplayText"
+                          SelectionChanged="OnModelSelectionChanged"
+                          PreviewMouseWheel="OnComboPreviewMouseWheel" Margin="0,0,0,10">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding DisplayText}" TextTrimming="CharacterEllipsis" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
                 <Border Background="{StaticResource SoftBrush}" CornerRadius="8" Padding="12,10"
                         BorderBrush="{StaticResource LineBrush}" BorderThickness="1">
                     <StackPanel>
-                        <Grid>
-                            <TextBlock x:Name="ModelNameText" FontSize="12" FontWeight="SemiBold"
-                                       Foreground="{StaticResource InkBrush}" TextTrimming="CharacterEllipsis" />
-                            <TextBlock x:Name="ModelSizeText" FontSize="11"
-                                       Foreground="{StaticResource FaintBrush}" HorizontalAlignment="Right" />
-                        </Grid>
+                        <TextBlock x:Name="ModelSizeText" Text="—" FontSize="11"
+                                   Foreground="{StaticResource FaintBrush}" />
                         <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                             <Ellipse x:Name="StateDot" Width="8" Height="8" Fill="#A1A1AA"
                                      VerticalAlignment="Center" />
@@ -51,7 +59,7 @@
                     </StackPanel>
                 </Border>
 
-                <Button x:Name="UninstallButton" Content="卸载模型" Tag="卸载模型"
+                <Button x:Name="UninstallButton" Content="卸载当前模型" Tag="卸载模型"
                         Style="{StaticResource GhostButton}" Margin="0,10,0,0" Padding="8,8" />
             </StackPanel>
 
