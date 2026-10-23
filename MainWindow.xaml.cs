@@ -15,6 +15,11 @@ namespace kfupet_local_chat
     /// </summary>
     public partial class MainWindow : Window
     {
+        private static readonly Brush EngineIdleBrush = new SolidColorBrush(Color.FromRgb(0xF5, 0x9E, 0x0B));
+        private static readonly Brush EngineRunningBrush = new SolidColorBrush(Color.FromRgb(0x10, 0xB9, 0x81));
+        private static readonly Brush EngineEmptyBrush = new SolidColorBrush(Color.FromRgb(0xA1, 0xA1, 0xAA));
+        private static readonly Brush EngineFailedBrush = new SolidColorBrush(Color.FromRgb(0xDC, 0x26, 0x26));
+
         private readonly LocalModelRuntime _runtime = new();
         private readonly ModelDeploymentService _deployment = new();
 
@@ -137,6 +142,7 @@ namespace kfupet_local_chat
                 {
                     EngineView.ShowDeployedModel(deployed);
                     ActionView.UpdateRunState(true, false, false);
+                    SetEngineStatus("本地引擎：未加载", EngineIdleBrush, running: false);
                     LogView.Append($"[部署] {deployed.ModelName} 已下载并部署：{deployed.FilePath}");
                 }
                 else
@@ -158,12 +164,34 @@ namespace kfupet_local_chat
             {
                 EngineView.ShowDownloadMode();
                 ActionView.UpdateRunState(false, false, false);
+                SetEngineStatus("本地引擎：未部署", EngineEmptyBrush, running: false);
                 return;
             }
 
             EngineView.ShowDeployedModel(deployed);
             ActionView.UpdateRunState(true, false, false);
+            SetEngineStatus("本地引擎：未加载", EngineIdleBrush, running: false);
             LogView.Append($"[本地模型] 检测到已部署模型：{deployed.ModelName}（{deployed.SizeText}），未启动。");
+        }
+
+        /// <summary>更新右上角引擎状态：文字、指示灯颜色；运行中停止呼吸动画。</summary>
+        private void SetEngineStatus(string text, Brush dotBrush, bool running)
+        {
+            StatusText.Text = text;
+            StatusDot.Fill = dotBrush;
+
+            StatusDot.BeginAnimation(OpacityProperty, null);
+            StatusDot.Opacity = 1;
+
+            if (!running)
+            {
+                StatusDot.BeginAnimation(OpacityProperty,
+                    new DoubleAnimation(1, 0.25, TimeSpan.FromMilliseconds(1000))
+                    {
+                        AutoReverse = true,
+                        RepeatBehavior = RepeatBehavior.Forever
+                    });
+            }
         }
 
         /// <summary>用 LLamaSharp 加载模型权重与上下文；有独显时把层全部卸载到 GPU。</summary>
@@ -179,6 +207,7 @@ namespace kfupet_local_chat
             {
                 EngineView.ShowDownloadMode();
                 ActionView.UpdateRunState(false, false, false);
+                SetEngineStatus("本地引擎：未部署", EngineEmptyBrush, running: false);
                 LogView.Append("[本地模型] 尚未部署模型，无法启动。");
                 return;
             }
@@ -206,6 +235,7 @@ namespace kfupet_local_chat
             EngineView.ShowHardware(hardware);
             EngineView.UpdateRuntime(false, true, "正在加载模型…");
             ActionView.UpdateRunState(true, false, true, "正在加载…");
+            SetEngineStatus("本地引擎：正在加载…", EngineIdleBrush, running: false);
             LogView.Append($"[本地模型] 正在加载 {deployed.ModelName}" +
                            $"（{(useGpu ? "GPU 加速" : "CPU 推理")}）…");
 
@@ -215,12 +245,15 @@ namespace kfupet_local_chat
                 EngineView.UpdateRuntime(true, false, useGpu ? "已启动 · GPU" : "已启动 · CPU");
                 ActionView.UpdateRunState(true, true, false);
                 var deviceText = useGpu ? $"GPU（{hardware.GpuName}）" : "CPU";
+                SetEngineStatus(useGpu ? "本地引擎：已加载 · GPU" : "本地引擎：已加载 · CPU",
+                    EngineRunningBrush, running: true);
                 LogView.Append($"[本地模型] 已启动：{deployed.ModelName} · {deviceText}");
             }
             catch (Exception ex)
             {
                 EngineView.UpdateRuntime(false, false, "启动失败");
                 ActionView.UpdateRunState(true, false, false);
+                SetEngineStatus("本地引擎：加载失败", EngineFailedBrush, running: false);
                 LogView.Append($"[本地模型] 启动失败：{ex.Message}");
                 MessageBox.Show(this, $"模型启动失败：\n{ex.Message}", "启动模型",
                     MessageBoxButton.OK, MessageBoxImage.Error);
@@ -234,14 +267,17 @@ namespace kfupet_local_chat
             {
                 EngineView.UpdateRuntime(false, false, "已停止");
                 ActionView.UpdateRunState(true, false, false);
+                SetEngineStatus("本地引擎：未加载", EngineIdleBrush, running: false);
                 return;
             }
 
             EngineView.UpdateRuntime(true, true, "正在结束…");
             ActionView.UpdateRunState(true, true, true, "正在停止…");
+            SetEngineStatus("本地引擎：正在停止…", EngineIdleBrush, running: false);
             await Task.Run(() => _runtime.Stop());
             EngineView.UpdateRuntime(false, false, "已停止");
             ActionView.UpdateRunState(true, false, false);
+            SetEngineStatus("本地引擎：未加载", EngineIdleBrush, running: false);
             LogView.Append("[本地模型] 已结束，占用已释放。");
         }
 
@@ -253,6 +289,7 @@ namespace kfupet_local_chat
             {
                 EngineView.ShowDownloadMode();
                 ActionView.UpdateRunState(false, false, false);
+                SetEngineStatus("本地引擎：未部署", EngineEmptyBrush, running: false);
                 return;
             }
 
@@ -272,6 +309,7 @@ namespace kfupet_local_chat
             var wasRunning = _runtime.IsRunning;
             EngineView.UpdateRuntime(wasRunning, true, "正在卸载…");
             ActionView.UpdateRunState(true, wasRunning, true, "正在卸载…");
+            SetEngineStatus("本地引擎：正在卸载…", EngineIdleBrush, running: false);
 
             try
             {
@@ -283,6 +321,7 @@ namespace kfupet_local_chat
                 _deployment.DeleteFiles(deployed);
                 EngineView.ShowDownloadMode();
                 ActionView.UpdateRunState(false, false, false);
+                SetEngineStatus("本地引擎：未部署", EngineEmptyBrush, running: false);
                 LogView.Append($"[本地模型] 已卸载：{deployed.ModelName}");
             }
             catch (Exception ex)
@@ -290,6 +329,8 @@ namespace kfupet_local_chat
                 EngineView.ShowDeployedModel(deployed);
                 EngineView.UpdateRuntime(_runtime.IsRunning, false, _runtime.IsRunning ? "已启动" : "已停止");
                 ActionView.UpdateRunState(true, _runtime.IsRunning, false);
+                SetEngineStatus(_runtime.IsRunning ? "本地引擎：已加载" : "本地引擎：未加载",
+                    _runtime.IsRunning ? EngineRunningBrush : EngineIdleBrush, _runtime.IsRunning);
                 LogView.Append($"[本地模型] 卸载失败：{ex.Message}");
                 MessageBox.Show(this, $"卸载失败：\n{ex.Message}", "卸载模型",
                     MessageBoxButton.OK, MessageBoxImage.Error);
