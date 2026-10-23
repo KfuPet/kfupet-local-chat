@@ -195,7 +195,7 @@ namespace kfupet_local_chat.Views
 
             try
             {
-                await ModelDownloadService.DownloadAsync(
+                var sha256 = await ModelDownloadService.DownloadAsync(
                     option, targetPath, progress, _downloadCts.Token);
 
                 var deployed = new DeployedModel
@@ -204,7 +204,10 @@ namespace kfupet_local_chat.Views
                     FileName = option.FileName,
                     FilePath = targetPath,
                     SizeBytes = new FileInfo(targetPath).Length,
-                    DeployedAt = DateTime.Now
+                    DeployedAt = DateTime.Now,
+                    Sha256 = sha256,
+                    Parameters = option.Parameters,
+                    Quantization = option.Quantization
                 };
 
                 _deployment.Save(deployed);

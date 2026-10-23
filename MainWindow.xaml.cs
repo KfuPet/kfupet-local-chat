@@ -29,12 +29,18 @@ namespace kfupet_local_chat
 
         private ConsoleWindow? _consoleWindow;
         private bool _closing;
+        private bool _switching;
         private PerformanceSampler? _sampler;
         private RunRecord? _lastRun;
         private DateTime _runStartedAt;
         private HardwareInfo? _runHardware;
         private DeployedModel? _runDeployed;
+        private BackendInfo? _runBackend;
         private InferenceDevice _runDevice;
+
+        private CancellationTokenSource? _benchmarkCts;
+        private Task<IReadOnlyList<BenchmarkResult>>? _benchmarkTask;
+        private readonly List<BenchmarkResult> _benchmarks = new();
 
         public MainWindow()
         {
@@ -44,6 +50,7 @@ namespace kfupet_local_chat
             Closed += (_, _) =>
             {
                 _closing = true;
+                _benchmarkCts?.Cancel();
                 _consoleWindow?.Close();
                 _runtime.Dispose();
                 _ = _sampler?.StopAsync();
@@ -222,31 +229,73 @@ namespace kfupet_local_chat
             }
         }
 
-        /// <summary>切换当前使用的模型；运行中不允许切换，避免文件被占用。</summary>
-        private void OnModelSwitchRequested(string fileName)
+        /// <summary>切换当前使用的模型；运行中会先确认，再停止旧模型、切换并启动新模型。</summary>
+        private async void OnModelSwitchRequested(string fileName)
         {
-            if (_runtime.IsRunning)
+            if (_switching)
             {
-                LogView.Append("[本地模型] 模型运行中，切换前请先停止。");
-                MessageBox.Show(this, "请先停止正在运行的本地模型，再切换模型。", "切换模型",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
-                RefreshModelLibrary();
                 return;
             }
 
             var models = _deployment.LoadAll();
+            var active = _deployment.LoadActive();
             var target = models.FirstOrDefault(m =>
                 string.Equals(m.FileName, fileName, StringComparison.OrdinalIgnoreCase));
 
-            if (target == null)
+            if (target == null || active == null)
             {
                 RefreshModelLibrary();
                 return;
             }
 
-            _deployment.SetActive(target.FileName);
-            RefreshModelLibrary();
-            LogView.Append($"[本地模型] 已切换为：{target.ModelName}（{target.SizeText}）");
+            // 选中的就是当前模型：保持选中，实际上不做任何操作
+            if (string.Equals(target.FileName, active.FileName, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            var wasRunning = _runtime.IsRunning;
+            if (wasRunning)
+            {
+                var confirm = MessageBox.Show(
+                    this,
+                    $"当前正在运行 {active.ModelName}。\n\n切换会先停止它，再启动 {target.ModelName}，是否继续？",
+                    "切换模型",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (confirm != MessageBoxResult.Yes)
+                {
+                    RefreshModelLibrary();
+                    return;
+                }
+            }
+
+            _switching = true;
+            try
+            {
+                ActionView.UpdateRunState(true, wasRunning, true, "正在切换…");
+                SetEngineStatus("本地引擎：正在切换…", EngineIdleBrush, running: false);
+
+                if (wasRunning)
+                {
+                    await StopModelAsync();
+                }
+
+                _deployment.SetActive(target.FileName);
+                RefreshModelLibrary();
+                LogView.Append($"[本地模型] 已切换为：{target.ModelName}（{target.SizeText}）");
+
+                if (wasRunning)
+                {
+                    await StartModelAsync();
+                }
+            }
+            finally
+            {
+                _switching = false;
+                RefreshModelLibrary();
+            }
         }
 
         /// <summary>更新右上角引擎状态：文字、指示灯颜色；运行中停止呼吸动画。</summary>
@@ -310,7 +359,9 @@ namespace kfupet_local_chat
             _runStartedAt = DateTime.Now;
             _runHardware = hardware;
             _runDeployed = deployed;
+            _runBackend = null;
             _runDevice = device;
+            _benchmarks.Clear();
             _sampler = new PerformanceSampler();
             _sampler.Start();
 
@@ -324,12 +375,14 @@ namespace kfupet_local_chat
             try
             {
                 await _runtime.StartAsync(deployed.FilePath, gpuLayers);
+                _runBackend = _runtime.Backend;
                 EngineView.UpdateRuntime(true, false, useGpu ? "已启动 · GPU" : "已启动 · CPU");
                 ActionView.UpdateRunState(true, true, false);
                 var deviceText = useGpu ? $"GPU（{hardware.GpuName}）" : "CPU";
                 SetEngineStatus(useGpu ? "本地引擎：已加载 · GPU" : "本地引擎：已加载 · CPU",
                     EngineRunningBrush, running: true);
                 LogView.Append($"[本地模型] 已启动：{deployed.ModelName} · {deviceText}");
+                StartBenchmark();
             }
             catch (Exception ex)
             {
@@ -348,6 +401,64 @@ namespace kfupet_local_chat
             }
         }
 
+        /// <summary>启动后自动跑两组固定基准，结果记进本次运行并展示在报告里。</summary>
+        private void StartBenchmark()
+        {
+            var cts = new CancellationTokenSource();
+            _benchmarkCts = cts;
+            var token = cts.Token;
+
+            // 基准要在后台线程跑，避免长 Prompt 生成阶段卡住界面
+            _benchmarkTask = Task.Run(() =>
+                PerformanceBenchmark.RunAsync(_runtime, OnBenchmarkItem, token));
+            LogView.Append("[基准] 已开始跑短句与长 Prompt 性能基准，完成后会写入报告。");
+        }
+
+        /// <summary>基准在后台线程完成，日志回到 UI 线程输出。</summary>
+        private void OnBenchmarkItem(BenchmarkResult result)
+        {
+            if (_closing || Dispatcher.HasShutdownStarted)
+            {
+                return;
+            }
+
+            var message = result.Completed
+                ? $"[基准] {result.Name}：首 token {result.TimeToFirstTokenMs:0} ms · " +
+                  $"{result.TokensPerSecond:0.0} tok/s · 输出 {result.OutputTokens} tokens · " +
+                  $"总耗时 {result.TotalSeconds:0.00} s"
+                : $"[基准] {result.Name} 未完成：{result.Error}";
+
+            Dispatcher.BeginInvoke(new Action(() => LogView.Append(message)));
+        }
+
+        /// <summary>停止基准并取回已完成的结果；用户中途停止时不会留下半截数据。</summary>
+        private async Task StopBenchmarkAsync()
+        {
+            if (_benchmarkCts == null)
+            {
+                return;
+            }
+
+            _benchmarkCts.Cancel();
+            if (_benchmarkTask != null)
+            {
+                try
+                {
+                    var results = await _benchmarkTask;
+                    _benchmarks.Clear();
+                    _benchmarks.AddRange(results);
+                }
+                catch
+                {
+                    // 基准失败不影响模型停止
+                }
+            }
+
+            _benchmarkCts.Dispose();
+            _benchmarkCts = null;
+            _benchmarkTask = null;
+        }
+
         /// <summary>释放模型占用的显存与内存。</summary>
         private async Task StopModelAsync()
         {
@@ -362,6 +473,8 @@ namespace kfupet_local_chat
             EngineView.UpdateRuntime(true, true, "正在结束…");
             ActionView.UpdateRunState(true, true, true, "正在停止…");
             SetEngineStatus("本地引擎：正在停止…", EngineIdleBrush, running: false);
+
+            await StopBenchmarkAsync();
             await Task.Run(() => _runtime.Stop());
 
             var samples = _sampler != null
@@ -410,6 +523,7 @@ namespace kfupet_local_chat
             {
                 if (wasRunning)
                 {
+                    await StopBenchmarkAsync();
                     await Task.Run(() => _runtime.Stop());
 
                     var samples = _sampler != null
@@ -505,11 +619,17 @@ namespace kfupet_local_chat
                 Model = _runDeployed,
                 Device = _runDevice,
                 Samples = samples,
-                Logs = LogView.GetLines().ToList()
+                Logs = LogView.GetLines().ToList(),
+                Benchmarks = _benchmarks.ToList(),
+                Backend = _runBackend
             };
 
+            // 每次完整运行都留一条摘要，导出报告时用于多模型对比
+            RunHistoryService.Append(RunHistoryEntry.FromRun(_lastRun));
+
             ActionView.SetExportEnabled(true);
-            LogView.Append($"[报告] 本次运行已记录（采样 {samples.Count} 次），可导出报告。");
+            LogView.Append($"[报告] 本次运行已记录（采样 {samples.Count} 次，" +
+                           $"基准 {_benchmarks.Count(b => b.Completed)} 项），可导出报告。");
         }
 
         /// <summary>导出最近一次完整运行的报告：report.md + charts.html 打包为 zip。</summary>
@@ -523,8 +643,9 @@ namespace kfupet_local_chat
 
             try
             {
-                var markdown = ReportService.BuildMarkdown(run);
-                var html = ReportService.BuildHtml(run);
+                var history = RunHistoryService.Load();
+                var markdown = ReportService.BuildMarkdown(run, history);
+                var html = ReportService.BuildHtml(run, history);
 
                 var dialog = new SaveFileDialog
                 {

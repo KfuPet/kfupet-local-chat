@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.Text;
 using LLama;
 using LLama.Common;
+using kfupet_local_chat.Models;
 
 namespace kfupet_local_chat.Services
 {
@@ -18,6 +20,9 @@ namespace kfupet_local_chat.Services
 
         public string? LoadedPath { get; private set; }
 
+        /// <summary>本次加载从 llama.cpp 日志里还原的后端信息；拿不到原生日志时为空。</summary>
+        public BackendInfo? Backend { get; private set; }
+
         /// <summary>加载模型；加载失败会抛异常，由调用方提示用户。</summary>
         public Task StartAsync(string modelPath, int gpuLayerCount)
         {
@@ -34,6 +39,9 @@ namespace kfupet_local_chat.Services
                     GpuLayerCount = gpuLayerCount
                 };
 
+                // 只保留本次加载的原生日志，避免解析到上一次的层卸载信息
+                LlamaLogCollector.Clear();
+
                 var weights = LLamaWeights.LoadFromFile(parameters);
                 try
                 {
@@ -42,6 +50,9 @@ namespace kfupet_local_chat.Services
                     _context = context;
                     _parameters = parameters;
                     LoadedPath = modelPath;
+                    Backend = BackendInfo.FromLogs(
+                        LlamaLogCollector.Snapshot(),
+                        (int)(parameters.ContextSize ?? 0));
                 }
                 catch
                 {
@@ -53,6 +64,18 @@ namespace kfupet_local_chat.Services
 
         /// <summary>用当前模型跑一次短推理：套用 GGUF 自带的对话模板，适合短句类调用。</summary>
         public async Task<string> InferAsync(
+            string systemPrompt,
+            string userMessage,
+            int maxTokens = 96,
+            CancellationToken cancellationToken = default)
+        {
+            var metrics = await InferWithMetricsAsync(
+                systemPrompt, userMessage, maxTokens, cancellationToken);
+            return metrics.Text;
+        }
+
+        /// <summary>与 <see cref="InferAsync"/> 相同，但同时记录首 token 延迟、输出 token 数与生成速度。</summary>
+        public async Task<InferenceMetrics> InferWithMetricsAsync(
             string systemPrompt,
             string userMessage,
             int maxTokens = 96,
@@ -77,13 +100,36 @@ namespace kfupet_local_chat.Services
                 };
 
                 var builder = new StringBuilder();
+                var stopwatch = Stopwatch.StartNew();
+                var firstTokenMs = 0d;
+                var tokens = 0;
+
                 await foreach (var token in executor.InferAsync(
                                    userMessage, inferenceParams, cancellationToken))
                 {
+                    if (tokens == 0)
+                    {
+                        firstTokenMs = stopwatch.Elapsed.TotalMilliseconds;
+                    }
+
+                    tokens++;
                     builder.Append(token);
                 }
 
-                return builder.ToString().Trim();
+                var totalSeconds = stopwatch.Elapsed.TotalSeconds;
+                stopwatch.Stop();
+
+                var text = builder.ToString().Trim();
+                if (tokens == 0)
+                {
+                    return new InferenceMetrics(
+                        text, 0, totalSeconds * 1000, 0, totalSeconds);
+                }
+
+                // 生成阶段 = 总耗时 - 首 token 前的提示词处理时间
+                var generationSeconds = Math.Max(0.001, totalSeconds - firstTokenMs / 1000);
+                return new InferenceMetrics(
+                    text, tokens, firstTokenMs, generationSeconds, totalSeconds);
             }
             finally
             {
@@ -100,6 +146,7 @@ namespace kfupet_local_chat.Services
             _weights?.Dispose();
             _weights = null;
             _parameters = null;
+            Backend = null;
 
             LoadedPath = null;
         }

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
+using System.Security.Cryptography;
 using kfupet_local_chat.Models;
 
 namespace kfupet_local_chat.Services
@@ -68,7 +69,8 @@ namespace kfupet_local_chat.Services
             Timeout = Timeout.InfiniteTimeSpan
         };
 
-        public static async Task DownloadAsync(
+        /// <summary>下载模型到目标路径，返回 GGUF 文件的 SHA256（边下载边计算，不额外读盘）。</summary>
+        public static async Task<string> DownloadAsync(
             LocalModelOption option,
             string targetPath,
             IProgress<DownloadProgress>? progress,
@@ -87,9 +89,9 @@ namespace kfupet_local_chat.Services
             {
                 try
                 {
-                    await DownloadFromUrlAsync(url, partPath, progress, cancellationToken);
+                    var sha256 = await DownloadFromUrlAsync(url, partPath, progress, cancellationToken);
                     File.Move(partPath, targetPath, overwrite: true);
-                    return;
+                    return sha256;
                 }
                 catch (OperationCanceledException)
                 {
@@ -107,7 +109,8 @@ namespace kfupet_local_chat.Services
                 lastError == null ? "没有可用的下载地址" : $"下载失败：{lastError.Message}", lastError);
         }
 
-        private static async Task DownloadFromUrlAsync(
+        /// <summary>单地址下载，同时增量计算 SHA256；返回十六进制小写摘要。</summary>
+        private static async Task<string> DownloadFromUrlAsync(
             string url,
             string partPath,
             IProgress<DownloadProgress>? progress,
@@ -131,6 +134,7 @@ namespace kfupet_local_chat.Services
             var lastReport = TimeSpan.Zero;
             long lastBytes = 0;
             double speed = 0;
+            using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
 
             while (true)
             {
@@ -141,6 +145,7 @@ namespace kfupet_local_chat.Services
                 }
 
                 await target.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                hasher.AppendData(buffer, 0, read);
                 receivedBytes += read;
 
                 var elapsed = stopwatch.Elapsed;
@@ -155,6 +160,8 @@ namespace kfupet_local_chat.Services
             }
 
             progress?.Report(new DownloadProgress(receivedBytes, totalBytes, speed));
+
+            return Convert.ToHexString(hasher.GetHashAndReset()).ToLowerInvariant();
         }
 
         private static void TryDelete(string path)

@@ -44,8 +44,43 @@ namespace kfupet_local_chat.Views
             }
         }
 
-        /// <summary>触摸反应：用当前本地模型生成一句回应，并显示耗时。</summary>
+        /// <summary>触摸反应：用当前本地模型生成一句回应。</summary>
         private async void OnTouchReactionClick(object sender, RoutedEventArgs e)
+        {
+            await RunInferenceAsync(
+                "触摸反应（headPet）",
+                TouchReactionPrompt.BuildEventPrompt(TouchReactionPrompt.PartHead, isPetting: true));
+        }
+
+        /// <summary>拖动越界回正。</summary>
+        private async void OnSnapBackClick(object sender, RoutedEventArgs e)
+        {
+            await RunInferenceAsync("拖动越界回正", TouchReactionPrompt.BuildSnapBackEventPrompt());
+        }
+
+        /// <summary>主动搭话：用固定的“独处 30 分钟”语境演示。</summary>
+        private async void OnProactiveClick(object sender, RoutedEventArgs e)
+        {
+            var contextNote = $"现在是 {DateTime.Now:HH:mm}，主人已经 30 分钟没有和你互动了。";
+            await RunInferenceAsync(
+                "主动搭话（idleChat）",
+                TouchReactionPrompt.BuildProactiveEventPrompt("idleChat", contextNote));
+        }
+
+        /// <summary>更新通知正文：用固定版本信息演示。</summary>
+        private async void OnUpdateNotificationClick(object sender, RoutedEventArgs e)
+        {
+            await RunInferenceAsync(
+                "更新通知正文",
+                UpdateNotificationPrompt.BuildEventPrompt(),
+                UpdateNotificationPrompt.NormalizeLine);
+        }
+
+        /// <summary>已接入的调用点共用的推理入口：校验模型状态、禁用按钮并输出耗时。</summary>
+        private async Task RunInferenceAsync(
+            string label,
+            string eventPrompt,
+            Func<string, string>? normalize = null)
         {
             if (_inferring)
             {
@@ -54,44 +89,50 @@ namespace kfupet_local_chat.Views
 
             if (!_runtime.IsRunning)
             {
-                AppendOutput("触摸反应：本地模型尚未启动，请先在主窗口点击「运行本地」。");
+                AppendOutput($"{label}：本地模型尚未启动，请先在主窗口点击「运行本地」。");
                 return;
             }
 
-            var eventPrompt = TouchReactionPrompt.BuildEventPrompt(
-                TouchReactionPrompt.PartHead, isPetting: true);
             if (string.IsNullOrEmpty(eventPrompt))
             {
-                AppendOutput("触摸反应：事件提示为空，已跳过。");
+                AppendOutput($"{label}：事件提示为空，已跳过。");
                 return;
             }
 
             _inferring = true;
-            TouchReactionButton.IsEnabled = false;
-            AppendOutput("触摸反应：已提交（headPet），正在生成…");
+            SetInferenceButtonsEnabled(false);
+            AppendOutput($"{label}：已提交，正在生成…");
 
             var stopwatch = Stopwatch.StartNew();
             try
             {
                 var reply = await _runtime.InferAsync(
                     TouchReactionPrompt.BuildSystemPrompt(), eventPrompt);
-                var line = TouchReactionPrompt.NormalizeLine(reply);
+                var line = (normalize ?? TouchReactionPrompt.NormalizeLine)(reply);
                 stopwatch.Stop();
 
                 AppendOutput(string.IsNullOrEmpty(line)
-                    ? $"触摸反应：模型返回空内容（{stopwatch.ElapsedMilliseconds} ms）"
-                    : $"触摸反应（headPet）：{line}（{stopwatch.ElapsedMilliseconds} ms）");
+                    ? $"{label}：模型返回空内容（{stopwatch.ElapsedMilliseconds} ms）"
+                    : $"{label}：{line}（{stopwatch.ElapsedMilliseconds} ms）");
             }
             catch (Exception ex)
             {
                 stopwatch.Stop();
-                AppendOutput($"触摸反应失败（{stopwatch.ElapsedMilliseconds} ms）：{ex.Message}");
+                AppendOutput($"{label} 失败（{stopwatch.ElapsedMilliseconds} ms）：{ex.Message}");
             }
             finally
             {
                 _inferring = false;
-                TouchReactionButton.IsEnabled = true;
+                SetInferenceButtonsEnabled(true);
             }
+        }
+
+        private void SetInferenceButtonsEnabled(bool enabled)
+        {
+            TouchReactionButton.IsEnabled = enabled;
+            SnapBackButton.IsEnabled = enabled;
+            ProactiveButton.IsEnabled = enabled;
+            NotificationButton.IsEnabled = enabled;
         }
 
         /// <summary>所有调用点共用的空壳入口：只回显调用了哪一项。</summary>

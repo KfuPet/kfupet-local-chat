@@ -5,7 +5,9 @@ using kfupet_local_chat.Models;
 
 namespace kfupet_local_chat.Services
 {
-    /// <summary>运行期间每秒采样一次：进程 CPU、进程内存，以及 NVIDIA 的 GPU / 显存占用。</summary>
+    /// <summary>
+    /// 运行期间每秒采样一次：进程 CPU、进程内存，以及 NVIDIA 的利用率、显存、温度、功耗与频率。
+    /// </summary>
     public sealed class PerformanceSampler
     {
         private readonly object _sync = new();
@@ -111,27 +113,42 @@ namespace kfupet_local_chat.Services
         private void AddSample(double offsetSeconds, double cpuPercent, Process process)
         {
             var memoryMb = process.WorkingSet64 / 1024d / 1024d;
-            var (gpuPercent, vramMb) = ReadGpu();
+            var gpu = ReadGpu();
 
             lock (_sync)
             {
-                _samples.Add(new PerformanceSample(offsetSeconds, cpuPercent, memoryMb, gpuPercent, vramMb));
+                _samples.Add(new PerformanceSample(
+                    offsetSeconds,
+                    cpuPercent,
+                    memoryMb,
+                    gpu.Utilization,
+                    gpu.MemoryUsedMb,
+                    gpu.TemperatureC,
+                    gpu.PowerW,
+                    gpu.ClockMhz,
+                    gpu.MaxClockMhz));
             }
         }
 
-        /// <summary>通过 nvidia-smi 读取第一块 NVIDIA 显卡的利用率和已用显存；没有该工具时返回空值。</summary>
-        private (double? GpuPercent, double? VramMb) ReadGpu()
+        /// <summary>
+        /// 通过 nvidia-smi 读取第一块 NVIDIA 显卡的利用率、显存、温度、功耗与频率；
+        /// 单个字段为 [N/A] 或解析失败时该字段留空，不影响其余字段。
+        /// </summary>
+        private GpuReading ReadGpu()
         {
             if (_nvidiaSmiPath == null)
             {
-                return (null, null);
+                return default;
             }
 
             try
             {
+                const string query =
+                    "utilization.gpu,memory.used,temperature.gpu,power.draw,clocks.gr,clocks.max.gr";
+
                 using var process = Process.Start(new ProcessStartInfo(
                     _nvidiaSmiPath,
-                    "--query-gpu=utilization.gpu,memory.used --format=csv,noheader,nounits")
+                    $"--query-gpu={query} --format=csv,noheader,nounits")
                 {
                     RedirectStandardOutput = true,
                     UseShellExecute = false,
@@ -140,7 +157,7 @@ namespace kfupet_local_chat.Services
 
                 if (process == null)
                 {
-                    return (null, null);
+                    return default;
                 }
 
                 var line = process.StandardOutput.ReadLine();
@@ -148,23 +165,43 @@ namespace kfupet_local_chat.Services
 
                 if (string.IsNullOrWhiteSpace(line))
                 {
-                    return (null, null);
+                    return default;
                 }
 
                 var parts = line.Split(',');
-                if (parts.Length < 2 ||
-                    !double.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var utilization) ||
-                    !double.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var used))
-                {
-                    return (null, null);
-                }
-
-                return (utilization, used);
+                return new GpuReading(
+                    Parse(parts, 0),
+                    Parse(parts, 1),
+                    Parse(parts, 2),
+                    Parse(parts, 3),
+                    Parse(parts, 4),
+                    Parse(parts, 5));
             }
             catch
             {
-                return (null, null);
+                return default;
             }
         }
+
+        private static double? Parse(string[] parts, int index)
+        {
+            if (index >= parts.Length)
+            {
+                return null;
+            }
+
+            var text = parts[index].Trim();
+            return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+                ? value
+                : null;
+        }
+
+        private readonly record struct GpuReading(
+            double? Utilization,
+            double? MemoryUsedMb,
+            double? TemperatureC,
+            double? PowerW,
+            double? ClockMhz,
+            double? MaxClockMhz);
     }
 }

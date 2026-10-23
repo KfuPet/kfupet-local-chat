@@ -19,7 +19,12 @@ namespace kfupet_local_chat.Services
             ["armRight"] = "主人戳了戳你的左手",
             ["legLeft"] = "主人戳了戳你的右腿",
             ["legRight"] = "主人戳了戳你的左腿",
-            ["body"] = "主人戳了戳你的身体"
+            ["body"] = "主人戳了戳你的身体",
+            ["snapBack"] = "主人拖动你的时候手滑，你差点掉出屏幕，还好你及时靠边站稳了",
+            ["idleChat"] = "主人已经有一阵子没理你了，你有点想主动找主人说说话",
+            ["welcomeBack"] = "主人离开很久了，刚刚回到电脑前",
+            ["morningGreeting"] = "现在是早上，主人新的一天开始了",
+            ["eveningGreeting"] = "现在是晚上，主人还在电脑前忙碌着"
         };
 
         /// <summary>构造发给模型的触摸事件消息。</summary>
@@ -32,6 +37,36 @@ namespace kfupet_local_chat.Services
             }
 
             return $"（触摸事件）{action}。{Instruction} /no_think";
+        }
+
+        /// <summary>构造拖动越界回正的事件消息。</summary>
+        public static string BuildSnapBackEventPrompt()
+        {
+            return BuildEventMessage("拖动事件", "snapBack");
+        }
+
+        /// <summary>构造主动搭话的事件消息：语境 + 角色事件描述。</summary>
+        public static string BuildProactiveEventPrompt(string eventKey, string contextNote)
+        {
+            var action = EventPrompts.GetValueOrDefault(eventKey);
+            if (string.IsNullOrWhiteSpace(action))
+            {
+                return string.Empty;
+            }
+
+            var context = string.IsNullOrWhiteSpace(contextNote) ? string.Empty : contextNote;
+            return $"（主动搭话）{context}{action}。{Instruction} /no_think";
+        }
+
+        private static string BuildEventMessage(string label, string eventKey)
+        {
+            var action = EventPrompts.GetValueOrDefault(eventKey);
+            if (string.IsNullOrWhiteSpace(action))
+            {
+                return string.Empty;
+            }
+
+            return $"（{label}）{action}。{Instruction} /no_think";
         }
 
         /// <summary>桌面宠物的人设底线，正式项目会换成角色包的完整提示词。</summary>

@@ -22,8 +22,6 @@
 
         <StackPanel Grid.Row="0" Margin="0,0,0,16">
             <TextBlock Text="启动控制台" FontSize="18" FontWeight="SemiBold" />
-            <TextBlock Text="逐个调试本地模型的小调用；所有调用点目前均为空壳，后续逐个接入。"
-                       FontSize="11.5" Foreground="{StaticResource FaintBrush}" Margin="0,4,0,0" />
         </StackPanel>
 
         <Grid Grid.Row="1">
@@ -39,20 +37,23 @@
                     <StackPanel>
                     <Grid Margin="0,0,0,14">
                         <TextBlock Text="调用点" Style="{StaticResource SectionTitle}" />
-                        <TextBlock Text="全部为空壳" FontSize="11"
+                        <TextBlock Text="前 4 项已接入" FontSize="11"
                                    Foreground="{StaticResource FaintBrush}" HorizontalAlignment="Right"
                                    VerticalAlignment="Center" />
                     </Grid>
 
                     <TextBlock Style="{StaticResource FieldLabel}" Text="对话与通知" Margin="0,0,0,8" />
                     <Button x:Name="TouchReactionButton" Content="触摸反应" Click="OnTouchReactionClick"
-                            Style="{StaticResource PrimaryButton}"
+                            Style="{StaticResource GhostButton}"
                             Margin="0,0,0,8" HorizontalContentAlignment="Left" Padding="14,8" />
-                    <Button Content="拖动越界回正" Click="OnShellCallClick" Style="{StaticResource GhostButton}"
+                    <Button x:Name="SnapBackButton" Content="拖动越界回正" Click="OnSnapBackClick"
+                            Style="{StaticResource GhostButton}"
                             Margin="0,0,0,8" HorizontalContentAlignment="Left" Padding="14,8" />
-                    <Button Content="主动搭话" Click="OnShellCallClick" Style="{StaticResource GhostButton}"
+                    <Button x:Name="ProactiveButton" Content="主动搭话" Click="OnProactiveClick"
+                            Style="{StaticResource GhostButton}"
                             Margin="0,0,0,8" HorizontalContentAlignment="Left" Padding="14,8" />
-                    <Button Content="更新通知正文" Click="OnShellCallClick" Style="{StaticResource GhostButton}"
+                    <Button x:Name="NotificationButton" Content="更新通知正文" Click="OnUpdateNotificationClick"
+                            Style="{StaticResource GhostButton}"
                             HorizontalContentAlignment="Left" Padding="14,8" />
 
                     <Border Height="1" Background="{StaticResource LineBrush}" Margin="0,16,0,16" />
