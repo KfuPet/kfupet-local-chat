@@ -185,21 +185,37 @@ namespace kfupet_local_chat
 
             var hardware = HardwareProbe.Detect();
             var modelGb = deployed.SizeBytes / 1024d / 1024d / 1024d;
-            var canUseGpu = hardware.HasDedicatedGpu && hardware.VramGb >= modelGb * 1.2;
-            var gpuLayers = canUseGpu ? 999 : 0;
+            var autoGpu = hardware.HasDedicatedGpu && hardware.VramGb >= modelGb * 1.2;
+            var device = EngineView.SelectedDevice;
+
+            var useGpu = device switch
+            {
+                InferenceDevice.Gpu => true,
+                InferenceDevice.Cpu => false,
+                _ => autoGpu
+            };
+
+            if (device == InferenceDevice.Gpu && !hardware.HasDedicatedGpu)
+            {
+                useGpu = false;
+                LogView.Append("[本地模型] 未检测到独显，已按 CPU 运行。");
+            }
+
+            var gpuLayers = useGpu ? 999 : 0;
 
             EngineView.ShowHardware(hardware);
             EngineView.UpdateRuntime(false, true, "正在加载模型…");
             ActionView.UpdateRunState(true, false, true, "正在加载…");
             LogView.Append($"[本地模型] 正在加载 {deployed.ModelName}" +
-                           $"（{(canUseGpu ? "GPU 加速" : "CPU 推理")}）…");
+                           $"（{(useGpu ? "GPU 加速" : "CPU 推理")}）…");
 
             try
             {
                 await _runtime.StartAsync(deployed.FilePath, gpuLayers);
-                EngineView.UpdateRuntime(true, false, "已启动");
+                EngineView.UpdateRuntime(true, false, useGpu ? "已启动 · GPU" : "已启动 · CPU");
                 ActionView.UpdateRunState(true, true, false);
-                LogView.Append($"[本地模型] 已启动：{deployed.ModelName}");
+                var deviceText = useGpu ? $"GPU（{hardware.GpuName}）" : "CPU";
+                LogView.Append($"[本地模型] 已启动：{deployed.ModelName} · {deviceText}");
             }
             catch (Exception ex)
             {

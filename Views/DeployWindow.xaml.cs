@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.Win32;
 using kfupet_local_chat.Models;
 using kfupet_local_chat.Services;
 
@@ -14,11 +15,13 @@ namespace kfupet_local_chat.Views
 
         private CancellationTokenSource? _downloadCts;
         private bool _downloading;
+        private string _modelDirectory = AppPaths.ModelsDirectory;
 
         public DeployWindow(HardwareInfo hardware, IReadOnlyList<LocalModelOption> options)
         {
             InitializeComponent();
             _hardware = hardware;
+            _modelDirectory = AppSettingsService.ResolveModelDirectory();
 
             HwGpuText.Text = hardware.GpuName;
             HwVramText.Text = hardware.HasDedicatedGpu
@@ -26,6 +29,7 @@ namespace kfupet_local_chat.Views
                 : "核显 / 无独显，CPU 推理";
             HwRamText.Text = $"{hardware.RamGb:0.0} GB";
             HwCpuText.Text = $"{hardware.LogicalCores} 线程";
+            UpdateStoragePath();
 
             ModelList.ItemsSource = options;
             ModelList.SelectedItem = options.FirstOrDefault(o => o.IsRecommended)
@@ -54,6 +58,39 @@ namespace kfupet_local_chat.Views
             {
                 SelectionText.Text = "尚未选择模型";
             }
+        }
+
+        private void UpdateStoragePath()
+        {
+            StoragePathText.Text = _modelDirectory;
+            StoragePathText.ToolTip = _modelDirectory;
+        }
+
+        /// <summary>选择模型存放目录，并持久化到设置里。</summary>
+        private void OnChooseFolderClick(object sender, RoutedEventArgs e)
+        {
+            if (_downloading)
+            {
+                return;
+            }
+
+            var dialog = new OpenFolderDialog
+            {
+                Title = "选择模型存放目录",
+                InitialDirectory = Directory.Exists(_modelDirectory)
+                    ? _modelDirectory
+                    : AppPaths.ModelsDirectory
+            };
+
+            if (dialog.ShowDialog(this) != true)
+            {
+                return;
+            }
+
+            _modelDirectory = dialog.FolderName;
+            AppSettingsService.Current.ModelDirectory = _modelDirectory;
+            AppSettingsService.Save();
+            UpdateStoragePath();
         }
 
         private void OnCancelClick(object sender, RoutedEventArgs e)
@@ -133,7 +170,7 @@ namespace kfupet_local_chat.Views
             ProgressDetailText.Text = "正在连接下载地址…";
             ProgressSpeedText.Text = string.Empty;
 
-            var targetPath = _deployment.GetTargetPath(option);
+            var targetPath = _deployment.GetTargetPath(option, _modelDirectory);
             var progress = new Progress<DownloadProgress>(value =>
             {
                 DownloadProgressBar.Value = value.Percent;

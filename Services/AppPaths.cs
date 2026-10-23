@@ -14,5 +14,7 @@ namespace kfupet_local_chat.Services
         public static string ConfigDirectory => Path.Combine(BaseDirectory, "Config");
 
         public static string DeployedConfigPath => Path.Combine(ConfigDirectory, "deployed.json");
+
+        public static string SettingsConfigPath => Path.Combine(ConfigDirectory, "settings.json");
     }
 }

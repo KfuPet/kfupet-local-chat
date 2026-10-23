@@ -2,10 +2,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using kfupet_local_chat.Models;
+using kfupet_local_chat.Services;
 
 namespace kfupet_local_chat.Views
 {
-    /// <summary>本地推理引擎卡片：下载入口，以及部署后的启动 / 结束 / 卸载管理。</summary>
+    /// <summary>本地推理引擎卡片：下载入口、推理设备选择，以及部署后的卸载管理。</summary>
     public partial class EngineCard : UserControl
     {
         private static readonly Brush StoppedDotBrush = new SolidColorBrush(Color.FromRgb(0xA1, 0xA1, 0xAA));
@@ -14,6 +15,21 @@ namespace kfupet_local_chat.Views
         public EngineCard()
         {
             InitializeComponent();
+            DeviceCombo.SelectedIndex = (int)AppSettingsService.Current.Device;
+        }
+
+        /// <summary>用户选择的推理设备。</summary>
+        public InferenceDevice SelectedDevice => DeviceCombo.SelectedIndex switch
+        {
+            1 => InferenceDevice.Gpu,
+            2 => InferenceDevice.Cpu,
+            _ => InferenceDevice.Auto
+        };
+
+        private void OnDeviceChanged(object sender, SelectionChangedEventArgs e)
+        {
+            AppSettingsService.Current.Device = SelectedDevice;
+            AppSettingsService.Save();
         }
 
         /// <summary>还没部署模型：只显示下载入口。</summary>

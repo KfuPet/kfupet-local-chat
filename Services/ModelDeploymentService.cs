@@ -37,10 +37,13 @@ namespace kfupet_local_chat.Services
             }
         }
 
-        /// <summary>模型在本地磁盘的落地路径。</summary>
-        public string GetTargetPath(LocalModelOption option)
+        /// <summary>模型在本地磁盘的落地路径；directory 为空时使用设置里的目录。</summary>
+        public string GetTargetPath(LocalModelOption option, string? directory = null)
         {
-            return Path.Combine(AppPaths.ModelsDirectory, option.FileName);
+            var root = string.IsNullOrWhiteSpace(directory)
+                ? AppSettingsService.ResolveModelDirectory()
+                : directory;
+            return Path.Combine(root, option.FileName);
         }
 
         public void Save(DeployedModel model)

@@ -115,6 +115,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -154,7 +155,28 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="2" Style="{StaticResource Card}" Margin="0" Padding="16">
+        <!-- 存储位置 -->
+        <Border Grid.Row="2" Style="{StaticResource Card}" Padding="16,14" Margin="0,0,0,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="存储位置" FontSize="11" Foreground="{StaticResource MutedBrush}" />
+                    <TextBlock x:Name="StoragePathText" FontSize="12" Margin="0,4,0,0"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="建议选择剩余空间充足的磁盘，模型文件会下载到这里。"
+                               FontSize="11" Foreground="{StaticResource FaintBrush}" Margin="0,3,0,0" />
+                </StackPanel>
+
+                <Button Grid.Column="1" Content="更改目录" Style="{StaticResource GhostButton}"
+                        Click="OnChooseFolderClick" Margin="12,0,0,0" VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="3" Style="{StaticResource Card}" Margin="0" Padding="16">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -177,7 +199,7 @@
         </Border>
 
         <!-- 下载进度 -->
-        <Border x:Name="DownloadPanel" Grid.Row="3" Visibility="Collapsed" Margin="0,14,0,0"
+        <Border x:Name="DownloadPanel" Grid.Row="4" Visibility="Collapsed" Margin="0,14,0,0"
                 Background="White" CornerRadius="10" BorderBrush="{StaticResource LineBrush}"
                 BorderThickness="1" Padding="14,12">
             <StackPanel>
@@ -197,7 +219,7 @@
             </StackPanel>
         </Border>
 
-        <Grid Grid.Row="4" Margin="0,16,0,0">
+        <Grid Grid.Row="5" Margin="0,16,0,0">
             <TextBlock x:Name="SelectionText" Text="尚未选择模型" FontSize="11.5"
                        Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" />
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">

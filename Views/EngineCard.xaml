@@ -20,6 +20,13 @@
                 </Grid>
             </Border>
 
+            <TextBlock Style="{StaticResource FieldLabel}" Text="推理设备" Margin="0,10,0,4" />
+            <ComboBox x:Name="DeviceCombo" SelectionChanged="OnDeviceChanged">
+                <ComboBoxItem Content="自动（按显存判断）" />
+                <ComboBoxItem Content="GPU 加速" />
+                <ComboBoxItem Content="纯 CPU" />
+            </ComboBox>
+
             <Button x:Name="DownloadButton" Content="下载模型" Tag="下载模型"
                     Style="{StaticResource PrimaryButton}" Margin="0,10,0,0" />
 
