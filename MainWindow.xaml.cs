@@ -200,14 +200,22 @@ namespace kfupet_local_chat
                 return;
             }
 
-            EngineView.ShowModels(models, active);
-            ActionView.UpdateRunState(true, false, false);
-            SetEngineStatus("本地引擎：未加载", EngineIdleBrush, running: false);
+            EngineView.ShowModels(models, active, _runtime.IsRunning);
+            ActionView.UpdateRunState(true, _runtime.IsRunning, false);
+
+            if (_runtime.IsRunning)
+            {
+                SetEngineStatus("本地引擎：已加载", EngineRunningBrush, running: true);
+            }
+            else
+            {
+                SetEngineStatus("本地引擎：未加载", EngineIdleBrush, running: false);
+            }
 
             if (log)
             {
                 LogView.Append($"[本地模型] 当前模型：{active.ModelName}（{active.SizeText}），" +
-                               $"共 {models.Count} 个已下载，未启动。");
+                               $"共 {models.Count} 个已下载，{(_runtime.IsRunning ? "运行中" : "未启动")}。");
             }
         }
 
@@ -455,7 +463,7 @@ namespace kfupet_local_chat
                 return;
             }
 
-            _consoleWindow = new ConsoleWindow { Owner = this };
+            _consoleWindow = new ConsoleWindow(_runtime) { Owner = this };
             _consoleWindow.Closed += (_, _) => _consoleWindow = null;
             _consoleWindow.Show();
             LogView.Append("[控制台] 已打开启动控制台。");

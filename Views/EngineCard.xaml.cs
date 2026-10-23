@@ -44,7 +44,7 @@ namespace kfupet_local_chat.Views
         }
 
         /// <summary>刷新已下载模型列表，并选中当前使用的模型。</summary>
-        public void ShowModels(IReadOnlyList<DeployedModel> models, DeployedModel active)
+        public void ShowModels(IReadOnlyList<DeployedModel> models, DeployedModel active, bool running = false)
         {
             ManagePanel.Visibility = System.Windows.Visibility.Visible;
             _updatingModels = true;
@@ -53,7 +53,7 @@ namespace kfupet_local_chat.Views
             _updatingModels = false;
 
             ModelSizeText.Text = active.SizeText;
-            UpdateRuntime(false, false, "已停止");
+            UpdateRuntime(running, false, running ? "已启动" : "已停止");
         }
 
         private void OnModelSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -86,6 +86,7 @@ namespace kfupet_local_chat.Views
             RuntimeStatusText.Text = status;
             StateDot.Fill = running ? RunningDotBrush : StoppedDotBrush;
             UninstallButton.IsEnabled = !busy;
+            ModelCombo.IsEnabled = !busy;
         }
 
         /// <summary>把检测结果写进卡片，供用户确认推荐依据。</summary>

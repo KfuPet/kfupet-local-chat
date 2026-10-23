@@ -1,10 +1,12 @@
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using kfupet_local_chat.Services;
 
 namespace kfupet_local_chat.Views
 {
-    /// <summary>调试控制台：按主项目的模型调用点逐项接入，目前全部为空壳。</summary>
+    /// <summary>调试控制台：按主项目的模型调用点逐项接入；触摸反应已接入本地推理。</summary>
     public partial class ConsoleWindow : Window
     {
         /// <summary>按截图量的物理像素尺寸，运行时换算成 WPF 逻辑单位。</summary>
@@ -13,9 +15,13 @@ namespace kfupet_local_chat.Views
 
         private static readonly Brush OutputBrush = new SolidColorBrush(Color.FromRgb(0x52, 0x52, 0x5B));
 
-        public ConsoleWindow()
+        private readonly LocalModelRuntime _runtime;
+        private bool _inferring;
+
+        public ConsoleWindow(LocalModelRuntime runtime)
         {
             InitializeComponent();
+            _runtime = runtime;
             SourceInitialized += OnSourceInitialized;
         }
 
@@ -35,6 +41,56 @@ namespace kfupet_local_chat.Views
             if (Height > area.Height)
             {
                 Height = area.Height;
+            }
+        }
+
+        /// <summary>触摸反应：用当前本地模型生成一句回应，并显示耗时。</summary>
+        private async void OnTouchReactionClick(object sender, RoutedEventArgs e)
+        {
+            if (_inferring)
+            {
+                return;
+            }
+
+            if (!_runtime.IsRunning)
+            {
+                AppendOutput("触摸反应：本地模型尚未启动，请先在主窗口点击「运行本地」。");
+                return;
+            }
+
+            var eventPrompt = TouchReactionPrompt.BuildEventPrompt(
+                TouchReactionPrompt.PartHead, isPetting: true);
+            if (string.IsNullOrEmpty(eventPrompt))
+            {
+                AppendOutput("触摸反应：事件提示为空，已跳过。");
+                return;
+            }
+
+            _inferring = true;
+            TouchReactionButton.IsEnabled = false;
+            AppendOutput("触摸反应：已提交（headPet），正在生成…");
+
+            var stopwatch = Stopwatch.StartNew();
+            try
+            {
+                var reply = await _runtime.InferAsync(
+                    TouchReactionPrompt.BuildSystemPrompt(), eventPrompt);
+                var line = TouchReactionPrompt.NormalizeLine(reply);
+                stopwatch.Stop();
+
+                AppendOutput(string.IsNullOrEmpty(line)
+                    ? $"触摸反应：模型返回空内容（{stopwatch.ElapsedMilliseconds} ms）"
+                    : $"触摸反应（headPet）：{line}（{stopwatch.ElapsedMilliseconds} ms）");
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                AppendOutput($"触摸反应失败（{stopwatch.ElapsedMilliseconds} ms）：{ex.Message}");
+            }
+            finally
+            {
+                _inferring = false;
+                TouchReactionButton.IsEnabled = true;
             }
         }
 

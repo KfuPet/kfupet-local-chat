@@ -45,7 +45,8 @@
                     </Grid>
 
                     <TextBlock Style="{StaticResource FieldLabel}" Text="对话与通知" Margin="0,0,0,8" />
-                    <Button Content="触摸反应" Click="OnShellCallClick" Style="{StaticResource GhostButton}"
+                    <Button x:Name="TouchReactionButton" Content="触摸反应" Click="OnTouchReactionClick"
+                            Style="{StaticResource PrimaryButton}"
                             Margin="0,0,0,8" HorizontalContentAlignment="Left" Padding="14,8" />
                     <Button Content="拖动越界回正" Click="OnShellCallClick" Style="{StaticResource GhostButton}"
                             Margin="0,0,0,8" HorizontalContentAlignment="Left" Padding="14,8" />
