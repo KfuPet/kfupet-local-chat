@@ -49,3 +49,6 @@ desktop.ini
 *.swp
 *~
 .vscode/
+
+# 本地记忆素材：真实记忆的只读副本，含个人数据，不提交
+data/
