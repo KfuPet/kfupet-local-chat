@@ -18,8 +18,8 @@ namespace kfupet_local_chat.Services
             RunHistoryService.Clear();
             removed.Add("运行历史");
 
-            // 早期「载入真实记忆副本」留下的两个只读副本
-            foreach (var name in new[] { "ArchiveMemory.json", "LongMemory.json" })
+            // 早期「载入真实记忆副本」留下的只读副本，以及归档提炼的另存结果
+            foreach (var name in new[] { "ArchiveMemory.json", "LongMemory.json", "ArchiveMemory.rebuilt.json" })
             {
                 var path = Path.Combine(AppPaths.ProjectRoot, "data", name);
                 try

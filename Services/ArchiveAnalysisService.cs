@@ -164,6 +164,27 @@ namespace kfupet_local_chat.Services
                     progress?.Report("[归档] 1 条未入选信息暂留归档");
                 }
 
+                // 5. 重建归档：已处理的条目全部移除，未入选内容总结成一条放回；
+                //    源归档只读，重建结果另存到项目 data 目录
+                var rebuilt = new List<ArchiveMemoryEntry>();
+                if (!string.IsNullOrWhiteSpace(summaryText))
+                {
+                    rebuilt.Add(new ArchiveMemoryEntry
+                    {
+                        Type = "summary",
+                        Time = DateTime.Now,
+                        Content = summaryText,
+                        Importance = 0,
+                        IsSummary = true
+                    });
+                }
+
+                var rebuiltPath = ArchiveMemoryService.RebuiltArchivePath;
+                ArchiveMemoryService.Save(rebuiltPath, rebuilt);
+                progress?.Report(rebuilt.Count > 0
+                    ? $"[归档] 已重建归档并另存：{rebuiltPath}（1 条总结）"
+                    : $"[归档] 已重建归档并另存：{rebuiltPath}（空，全部提炼结果均达到重要性阈值，无剩余内容）");
+
                 watch.Stop();
                 return new ArchiveAnalysisResult
                 {
@@ -177,6 +198,7 @@ namespace kfupet_local_chat.Services
                     StoredCount = stored.Count,
                     LowCount = low.Count,
                     SummaryText = summaryText,
+                    RebuiltArchivePath = rebuiltPath,
                     ExtractionParsed = extractionParsed,
                     Seconds = watch.Elapsed.TotalSeconds,
                     Items = results

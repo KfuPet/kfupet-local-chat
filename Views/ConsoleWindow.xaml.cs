@@ -137,7 +137,8 @@ namespace kfupet_local_chat.Views
 
                 AppendOutput(result.Succeeded
                     ? $"归档批量提炼：完成，提炼 {result.ExtractedCount} 条，" +
-                      $"写入长期记忆 {result.StoredCount} 条，耗时 {result.Seconds:0.0} s"
+                      $"写入长期记忆 {result.StoredCount} 条，耗时 {result.Seconds:0.0} s；" +
+                      $"重建归档已另存：{result.RebuiltArchivePath}"
                     : $"归档批量提炼：{result.Message}");
             }
             catch (Exception ex)

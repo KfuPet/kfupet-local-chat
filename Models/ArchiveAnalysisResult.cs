@@ -33,6 +33,9 @@ namespace kfupet_local_chat.Models
 
         public string? SummaryText { get; init; }
 
+        /// <summary>重建后的归档另存路径（data 目录），源归档文件不会被修改。</summary>
+        public string? RebuiltArchivePath { get; init; }
+
         /// <summary>对话批量提炼是否返回了可解析的 JSON。</summary>
         public bool ExtractionParsed { get; init; }
 
