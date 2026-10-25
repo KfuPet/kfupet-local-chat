@@ -34,6 +34,9 @@ namespace kfupet_local_chat.Models
 
         public required string Note { get; init; }
 
+        /// <summary>是否支持实时核心信息提取；1.7B 输出 JSON 不稳定，试点里只用于对话。</summary>
+        public bool SupportsMemoryExtraction { get; init; } = true;
+
         public string SizeText => $"{DownloadSizeBytes / 1024d / 1024d / 1024d:0.0} GB";
 
         /// <summary>当前机器上的运行状态，由 ModelCatalog 计算。</summary>

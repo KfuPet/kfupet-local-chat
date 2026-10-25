@@ -19,5 +19,8 @@ namespace kfupet_local_chat.Services
 
         /// <summary>历次完整运行的摘要，用于导出报告里的多模型对比。</summary>
         public static string RunHistoryPath => Path.Combine(ConfigDirectory, "runhistory.json");
+
+        /// <summary>主对话的长期记忆。</summary>
+        public static string MemoryPath => Path.Combine(ConfigDirectory, "memories.json");
     }
 }

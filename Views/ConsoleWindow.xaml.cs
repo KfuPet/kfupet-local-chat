@@ -16,6 +16,7 @@ namespace kfupet_local_chat.Views
         private static readonly Brush OutputBrush = new SolidColorBrush(Color.FromRgb(0x52, 0x52, 0x5B));
 
         private readonly LocalModelRuntime _runtime;
+        private ChatWindow? _chatWindow;
         private bool _inferring;
 
         public ConsoleWindow(LocalModelRuntime runtime)
@@ -42,6 +43,33 @@ namespace kfupet_local_chat.Views
             {
                 Height = area.Height;
             }
+        }
+
+        /// <summary>主对话：输入一句话就能与桌宠多轮聊天，每轮自动判断是否值得长期记住。</summary>
+        private void OnOpenChatClick(object sender, RoutedEventArgs e)
+        {
+            ShowChatWindow();
+        }
+
+        /// <summary>实时核心信息提取已并入主对话，每轮回复后自动执行。</summary>
+        private void OnRealtimeExtractClick(object sender, RoutedEventArgs e)
+        {
+            ShowChatWindow();
+            AppendOutput("实时核心信息提取：已并入主对话，每轮回复后自动执行，结果见右侧长期记忆。");
+        }
+
+        private void ShowChatWindow()
+        {
+            if (_chatWindow is { IsVisible: true })
+            {
+                _chatWindow.Activate();
+                return;
+            }
+
+            _chatWindow = new ChatWindow(_runtime) { Owner = this };
+            _chatWindow.Closed += (_, _) => _chatWindow = null;
+            _chatWindow.Show();
+            AppendOutput("主对话：已打开，每轮回复后会自动判断是否值得长期记住。");
         }
 
         /// <summary>触摸反应：用当前本地模型生成一句回应。</summary>
