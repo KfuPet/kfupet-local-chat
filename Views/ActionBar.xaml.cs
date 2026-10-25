@@ -2,7 +2,7 @@ using System.Windows.Controls;
 
 namespace kfupet_local_chat.Views
 {
-    /// <summary>操作条：运行 / 停止本地模型由同一个按钮切换，另含导出与清空。</summary>
+    /// <summary>操作条：运行 / 停止本地模型由同一个按钮切换，另含导出与全量清除。</summary>
     public partial class ActionBar : UserControl
     {
         public ActionBar()

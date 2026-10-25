@@ -100,6 +100,9 @@ namespace kfupet_local_chat
 
             LogView.Append("试点台已启动：本地模型可按需下载、启动与卸载。");
             RefreshModelLibrary(log: true);
+
+            DataSourceView.Initialize();
+            LogView.Append("[数据源] 尚未选择归档文件，可在左侧手动选择。");
         }
 
         /// <summary>按钮事件分发：冒泡到窗口时用 OriginalSource 找回真正的按钮，再按 Tag 处理。</summary>
@@ -113,9 +116,15 @@ namespace kfupet_local_chat
             var action = element.Tag?.ToString() ?? "未命名操作";
             switch (action)
             {
-                case "清空结果":
-                    ResultView.ResetResult();
-                    LogView.Append("结果区已清空。");
+                case "清除所有数据":
+                    await ClearAllDataAsync();
+                    return;
+                case "选择归档文件":
+                    if (DataSourceView.ChooseArchiveFile(out var archiveMessage) ||
+                        !string.IsNullOrEmpty(archiveMessage))
+                    {
+                        LogView.Append($"[数据源] {archiveMessage}");
+                    }
                     return;
                 case "下载模型":
                     DetectAndShowModels();
@@ -475,7 +484,7 @@ namespace kfupet_local_chat
             SetEngineStatus("本地引擎：正在停止…", EngineIdleBrush, running: false);
 
             await StopBenchmarkAsync();
-            await Task.Run(() => _runtime.Stop());
+            await _runtime.StopWhenIdleAsync();
 
             var samples = _sampler != null
                 ? await _sampler.StopAsync()
@@ -524,7 +533,7 @@ namespace kfupet_local_chat
                 if (wasRunning)
                 {
                     await StopBenchmarkAsync();
-                    await Task.Run(() => _runtime.Stop());
+                    await _runtime.StopWhenIdleAsync();
 
                     var samples = _sampler != null
                         ? await _sampler.StopAsync()
@@ -580,7 +589,8 @@ namespace kfupet_local_chat
                 return;
             }
 
-            _consoleWindow = new ConsoleWindow(_runtime);
+            _consoleWindow = new ConsoleWindow(_runtime, DataSourceView,
+                result => ResultView.ShowArchiveResult(result));
             _consoleWindow.Closed += (_, _) =>
             {
                 _consoleWindow = null;
@@ -692,6 +702,81 @@ namespace kfupet_local_chat
             var entry = archive.CreateEntry(name, CompressionLevel.Optimal);
             using var writer = new StreamWriter(entry.Open(), new UTF8Encoding(false));
             writer.Write(content);
+        }
+
+        /// <summary>关闭控制台（同时关闭其关联的主对话窗口），用于清除上下文与旧结果。</summary>
+        private async Task CloseConsoleAsync()
+        {
+            if (_consoleWindow is not { } console)
+            {
+                return;
+            }
+
+            await console.CancelAnalysisAsync();
+            console.Close();
+            _consoleWindow = null;
+        }
+
+        /// <summary>清除本试点产生的全部本地数据；GGUF 模型文件保留在磁盘上。</summary>
+        private async Task ClearAllDataAsync()
+        {
+            if (_switching)
+            {
+                MessageBox.Show(this, "正在切换模型，请等切换完成后再清除。", "清除所有数据",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var confirm = MessageBox.Show(
+                this,
+                "将清除以下运行数据：\n" +
+                "· 长期记忆（memories.json）\n" +
+                "· 运行历史（runhistory.json）\n" +
+                "· 真实记忆副本（data/ 下的两个 JSON）\n" +
+                "· 对话上下文、控制台输出、结果卡片与未导出的报告快照\n\n" +
+                "保留：已部署模型记录、模型存储目录与推理设备设置、磁盘上的 GGUF 模型文件。\n\n是否继续？",
+                "清除所有数据",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (confirm != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            try
+            {
+                // 先关掉控制台/主对话，取消正在进行的归档提炼并清掉会话上下文
+                await CloseConsoleAsync();
+
+                if (_runtime.IsRunning)
+                {
+                    LogView.Append("[重置] 正在停止本地模型…");
+                    await StopModelAsync();
+                }
+
+                var removed = AppDataResetService.ClearAll();
+
+                _lastRun = null;
+                _benchmarks.Clear();
+                _runHardware = null;
+                _runDeployed = null;
+                _runBackend = null;
+
+                ActionView.SetExportEnabled(false);
+                ResultView.ResetResult();
+                DataSourceView.ResetSource();
+                RefreshModelLibrary();
+
+                LogView.Append($"[重置] 已清除：{string.Join("、", removed)}；" +
+                               "模型部署记录、模型目录与设备设置、GGUF 文件均保留。");
+            }
+            catch (Exception ex)
+            {
+                LogView.Append($"[重置] 清除失败：{ex.Message}");
+                MessageBox.Show(this, $"清除失败：\n{ex.Message}", "清除所有数据",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void DataSourceView_Loaded(object sender, RoutedEventArgs e)

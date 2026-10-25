@@ -10,7 +10,7 @@
 
             <Grid Grid.Row="0" Margin="0,0,0,12">
                 <TextBlock Text="操作" Style="{StaticResource SectionTitle}" />
-                <TextBlock Text="运行本地会加载 / 释放本地模型" FontSize="11.5"
+                <TextBlock Text="运行本地加载模型；重置不删除 GGUF 文件" FontSize="11.5"
                            Foreground="{StaticResource FaintBrush}" HorizontalAlignment="Right"
                            VerticalAlignment="Center" />
             </Grid>
@@ -22,7 +22,7 @@
                         Margin="0,0,8,0" />
                 <Button x:Name="ExportButton" Content="导出报告" Tag="导出报告" IsEnabled="False"
                         Style="{StaticResource GhostButton}" Margin="0,0,8,0" />
-                <Button Content="清空结果" Tag="清空结果" Style="{StaticResource GhostButton}" />
+                <Button Content="清除所有数据" Tag="清除所有数据" Style="{StaticResource GhostButton}" />
             </UniformGrid>
         </Grid>
     </Border>

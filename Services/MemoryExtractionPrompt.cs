@@ -37,7 +37,7 @@ namespace kfupet_local_chat.Services
         /// <summary>解析模型返回的 JSON 数组；返回是否解析成功与信息列表。</summary>
         public static (bool Parsed, IReadOnlyList<ExtractedMemory> Items) ParseItems(string reply)
         {
-            var text = StripThink(reply);
+            var text = StripThinking(reply);
 
             // 模型偶尔会在 JSON 前后附带说明文字，截取最外层数组
             var start = text.IndexOf('[');
@@ -75,7 +75,36 @@ namespace kfupet_local_chat.Services
             }
         }
 
-        private static string StripThink(string reply)
+        /// <summary>解析模型返回的评分 JSON；失败返回 0。</summary>
+        public static int ParseScore(string reply)
+        {
+            var text = StripThinking(reply);
+            var start = text.IndexOf('{');
+            var end = text.LastIndexOf('}');
+            if (start < 0 || end <= start)
+            {
+                return 0;
+            }
+
+            try
+            {
+                using var doc = JsonDocument.Parse(text[start..(end + 1)]);
+                if (doc.RootElement.TryGetProperty("importance", out var importance) &&
+                    importance.TryGetInt32(out var value))
+                {
+                    return Math.Clamp(value, 0, 5);
+                }
+            }
+            catch (JsonException)
+            {
+                // 解析失败按 0 处理
+            }
+
+            return 0;
+        }
+
+        /// <summary>去掉 Qwen3 可能输出的思考段，归档提炼的几个解析都复用它。</summary>
+        internal static string StripThinking(string reply)
         {
             var text = ThinkRegex.Replace(reply, string.Empty);
 

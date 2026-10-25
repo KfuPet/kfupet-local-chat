@@ -77,7 +77,17 @@ namespace kfupet_local_chat.Services
         {
             lock (Sync)
             {
-                Write(new List<LongTermMemory>());
+                try
+                {
+                    if (File.Exists(AppPaths.MemoryPath))
+                    {
+                        File.Delete(AppPaths.MemoryPath);
+                    }
+                }
+                catch
+                {
+                    // 删除失败时下次读取仍会拿到旧数据
+                }
             }
         }
 

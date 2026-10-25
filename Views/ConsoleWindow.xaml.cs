@@ -2,47 +2,35 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using kfupet_local_chat.Models;
 using kfupet_local_chat.Services;
 
 namespace kfupet_local_chat.Views
 {
-    /// <summary>调试控制台：按主项目的模型调用点逐项接入；触摸反应已接入本地推理。</summary>
+    /// <summary>调试控制台：按主项目的模型调用点逐项接入；触摸反应等 4 项与归档批量提炼已接入本地推理。</summary>
     public partial class ConsoleWindow : Window
     {
-        /// <summary>按截图量的物理像素尺寸，运行时换算成 WPF 逻辑单位。</summary>
-        private const double TargetPixelWidth = 1783;
-        private const double TargetPixelHeight = 1032;
-
         private static readonly Brush OutputBrush = new SolidColorBrush(Color.FromRgb(0x52, 0x52, 0x5B));
 
         private readonly LocalModelRuntime _runtime;
+        private readonly DataSourceCard? _dataSource;
+        private readonly Action<ArchiveAnalysisResult>? _onAnalysisCompleted;
+        private readonly CancellationTokenSource _analysisCts = new();
         private ChatWindow? _chatWindow;
         private bool _inferring;
+        private bool _analyzingArchive;
+        private Task? _analysisTask;
 
-        public ConsoleWindow(LocalModelRuntime runtime)
+        public ConsoleWindow(
+            LocalModelRuntime runtime,
+            DataSourceCard? dataSource = null,
+            Action<ArchiveAnalysisResult>? onAnalysisCompleted = null)
         {
             InitializeComponent();
             _runtime = runtime;
-            SourceInitialized += OnSourceInitialized;
-        }
-
-        /// <summary>把截图里的物理像素换算成当前 DPI 下的逻辑尺寸，并限制在工作区内。</summary>
-        private void OnSourceInitialized(object? sender, EventArgs e)
-        {
-            var dpi = VisualTreeHelper.GetDpi(this);
-            Width = TargetPixelWidth / dpi.DpiScaleX;
-            Height = TargetPixelHeight / dpi.DpiScaleY;
-
-            var area = SystemParameters.WorkArea;
-            if (Width > area.Width)
-            {
-                Width = area.Width;
-            }
-
-            if (Height > area.Height)
-            {
-                Height = area.Height;
-            }
+            _dataSource = dataSource;
+            _onAnalysisCompleted = onAnalysisCompleted;
+            Closed += (_, _) => _analysisCts.Cancel();
         }
 
         /// <summary>主对话：输入一句话就能与桌宠多轮聊天，每轮自动判断是否值得长期记住。</summary>
@@ -70,6 +58,99 @@ namespace kfupet_local_chat.Views
             _chatWindow.Closed += (_, _) => _chatWindow = null;
             _chatWindow.Show();
             AppendOutput("主对话：已打开，每轮回复后会自动判断是否值得长期记住。");
+        }
+
+        /// <summary>归档批量提炼：用主窗口数据源里选中的归档文件跑完整分析，结果显示在下方输出卡片。</summary>
+        private void OnArchiveExtractClick(object sender, RoutedEventArgs e)
+        {
+            if (_analyzingArchive)
+            {
+                return;
+            }
+
+            _analysisTask = RunArchiveAnalysisAsync();
+        }
+
+        /// <summary>取消并等待正在进行的归档提炼，供主窗口全量清除前调用。</summary>
+        public async Task CancelAnalysisAsync()
+        {
+            _analysisCts.Cancel();
+            if (_analysisTask is { } task)
+            {
+                try
+                {
+                    await task;
+                }
+                catch
+                {
+                    // 任务内部已处理异常
+                }
+            }
+        }
+
+        private async Task RunArchiveAnalysisAsync()
+        {
+            IReadOnlyList<ArchiveMemoryEntry> entries =
+                _dataSource?.Entries ?? Array.Empty<ArchiveMemoryEntry>();
+
+            if (entries.Count == 0)
+            {
+                AppendOutput("归档批量提炼：请先在主窗口左侧「数据源」选择归档文件。");
+                return;
+            }
+
+            if (!_runtime.IsRunning)
+            {
+                AppendOutput("归档批量提炼：本地模型尚未启动，请先在主窗口点击「运行本地」。");
+                return;
+            }
+
+            var active = new ModelDeploymentService().LoadActive();
+            if (!ModelCatalog.SupportsMemoryExtraction(active))
+            {
+                AppendOutput($"归档批量提炼：当前模型 {active?.ModelName ?? "未记录"} 不支持稳定的信息提取，" +
+                             "请切换到 4B 或 8B。");
+                return;
+            }
+
+            _analyzingArchive = true;
+            ArchiveExtractButton.IsEnabled = false;
+            ConsoleResultView.ShowBusy();
+            AppendOutput($"归档批量提炼：开始，共 {entries.Count} 条（{active?.ModelName}）。");
+
+            var progress = new Progress<string>(AppendOutput);
+            try
+            {
+                var service = new ArchiveAnalysisService(_runtime, new MemoryStoreService());
+                var result = await Task.Run(() =>
+                    service.AnalyzeAsync(entries, progress, _analysisCts.Token));
+
+                // 窗口已关闭（例如全量清除时）：不再更新界面，也不回传结果
+                if (_analysisCts.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                ConsoleResultView.ShowArchiveResult(result);
+                _dataSource?.RefreshCounts();
+                _onAnalysisCompleted?.Invoke(result);
+
+                AppendOutput(result.Succeeded
+                    ? $"归档批量提炼：完成，提炼 {result.ExtractedCount} 条，" +
+                      $"写入长期记忆 {result.StoredCount} 条，耗时 {result.Seconds:0.0} s"
+                    : $"归档批量提炼：{result.Message}");
+            }
+            catch (Exception ex)
+            {
+                ConsoleResultView.ShowError(ex.Message);
+                AppendOutput($"归档批量提炼失败：{ex.Message}");
+            }
+            finally
+            {
+                _analyzingArchive = false;
+                ArchiveExtractButton.IsEnabled = true;
+                _analysisTask = null;
+            }
         }
 
         /// <summary>触摸反应：用当前本地模型生成一句回应。</summary>

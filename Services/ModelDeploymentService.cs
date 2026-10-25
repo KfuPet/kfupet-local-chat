@@ -100,6 +100,17 @@ namespace kfupet_local_chat.Services
 
         private DeployedModelLibrary LoadValidated()
         {
+            // deployed.json 丢失时（例如旧版本全量清除过），按模型目录里已有的 GGUF 自动重建
+            if (!File.Exists(AppPaths.DeployedConfigPath))
+            {
+                var recovered = TryRecoverFromModelDirectory();
+                if (recovered != null)
+                {
+                    Write(recovered);
+                    return recovered;
+                }
+            }
+
             var library = ReadLibrary();
 
             var missing = library.Models.RemoveAll(m => !File.Exists(m.FilePath));
@@ -118,6 +129,42 @@ namespace kfupet_local_chat.Services
                 Write(library);
             }
 
+            return library;
+        }
+
+        /// <summary>扫描当前模型目录，把模型目录里定义的已知 GGUF 重新登记为已部署记录。</summary>
+        private static DeployedModelLibrary? TryRecoverFromModelDirectory()
+        {
+            var root = AppSettingsService.ResolveModelDirectory();
+            var library = new DeployedModelLibrary();
+
+            foreach (var option in ModelCatalog.All)
+            {
+                var path = Path.Combine(root, option.FileName);
+                if (!File.Exists(path))
+                {
+                    continue;
+                }
+
+                library.Models.Add(new DeployedModel
+                {
+                    ModelName = option.Name,
+                    FileName = option.FileName,
+                    FilePath = path,
+                    SizeBytes = new FileInfo(path).Length,
+                    DeployedAt = File.GetLastWriteTime(path),
+                    Parameters = option.Parameters,
+                    Quantization = option.Quantization
+                });
+            }
+
+            if (library.Models.Count == 0)
+            {
+                return null;
+            }
+
+            // 默认选目录中最大的已下载模型（目录顺序为 1.7B、4B、8B）
+            library.ActiveFileName = library.Models[^1].FileName;
             return library;
         }
 

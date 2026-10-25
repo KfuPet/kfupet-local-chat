@@ -112,6 +112,25 @@ namespace kfupet_local_chat.Services
             }
         }
 
+        /// <summary>删除全部运行历史；全量清除时使用。</summary>
+        public static void Clear()
+        {
+            lock (Sync)
+            {
+                try
+                {
+                    if (File.Exists(AppPaths.RunHistoryPath))
+                    {
+                        File.Delete(AppPaths.RunHistoryPath);
+                    }
+                }
+                catch
+                {
+                    // 删除失败时下次读取仍会拿到旧数据
+                }
+            }
+        }
+
         private static List<RunHistoryEntry> Read()
         {
             try

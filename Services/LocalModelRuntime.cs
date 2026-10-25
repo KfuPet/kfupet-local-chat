@@ -137,6 +137,20 @@ namespace kfupet_local_chat.Services
             }
         }
 
+        /// <summary>等待当前推理结束后再释放，避免在推理过程中销毁原生上下文。</summary>
+        public async Task StopWhenIdleAsync()
+        {
+            await _inferenceGate.WaitAsync();
+            try
+            {
+                Stop();
+            }
+            finally
+            {
+                _inferenceGate.Release();
+            }
+        }
+
         /// <summary>释放上下文与权重，下次启动重新加载。</summary>
         public void Stop()
         {

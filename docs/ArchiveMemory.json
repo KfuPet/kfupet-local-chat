@@ -1,0 +1,402 @@
+[
+  {
+    "Type": "conversation",
+    "Time": "2026-10-10T09:12:00+08:00",
+    "User": "早上好呀，今天外面下雨了，鞋子都湿了。",
+    "Assistant": "早上好！先把鞋换成干的吧，别着凉了，我陪你等雨小一点。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-10T12:30:00+08:00",
+    "User": "中午吃了楼下那家牛肉面，味道一般，下次不去了。",
+    "Assistant": "那下次换一家试试，我把这家记在小本本上不再推荐啦。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-10T18:40:00+08:00",
+    "User": "今天代码 review 被挑了好多问题，有点沮丧。",
+    "Assistant": "被挑问题说明有人在认真看你的代码呀，改完就更稳了，别太往心里去。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-10T22:05:00+08:00",
+    "User": "对了，我叫小林，以后就这么叫我吧。",
+    "Assistant": "好呀小林，这个名字听起来就很靠谱，我记住啦。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": true
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-11T08:50:00+08:00",
+    "User": "我是一名后端工程师，平时主要写 Go。",
+    "Assistant": "原来是写 Go 的后端工程师，难怪说话这么有条理，佩服佩服。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": true
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-11T12:10:00+08:00",
+    "User": "今天食堂的香菜实在太多了，我全挑出来了，我受不了香菜。",
+    "Assistant": "香菜确实很挑人，下次点餐记得提前说不要香菜。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-11T20:30:00+08:00",
+    "User": "今晚要加班到九点，先不聊了。",
+    "Assistant": "好，忙完记得吃点东西，我在这儿等你回来。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-12T09:05:00+08:00",
+    "User": "我养了一只猫叫团子，今天早上它把我的杯子推下桌了。",
+    "Assistant": "团子这是在建功立业呢，杯子没事吧？下次把杯子往里放一点。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-12T13:20:00+08:00",
+    "User": "中午喝了杯美式，不加糖那种，感觉整个人活过来了。",
+    "Assistant": "不加糖的美式才是真提神，不过别喝太多，晚上会睡不着的。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": true
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-12T19:00:00+08:00",
+    "User": "周三晚上我要去打羽毛球，可能回消息会慢一点。",
+    "Assistant": "去运动是好事，注意别扭到手腕，打完记得拉伸。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-12T22:40:00+08:00",
+    "User": "打完球好累，回来看了两集悬疑剧，这种剧真上头。",
+    "Assistant": "悬疑剧就是容易一集接一集，别看到太晚，明天还要上班呢。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-13T10:15:00+08:00",
+    "User": "我生日是 3 月 14 日，到时候记得提醒我吃蛋糕。",
+    "Assistant": "3 月 14 日我记下来了，到时候一定提醒你，蛋糕要草莓味的吗？",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-13T15:40:00+08:00",
+    "User": "今天写了个脚本自动整理日志，省了我半小时。",
+    "Assistant": "这种小工具最划算了，一次写完能省很多个半小时。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-13T21:10:00+08:00",
+    "User": "我老家在成都，最近有点想回去吃火锅了。",
+    "Assistant": "成都的火锅确实让人惦记，等有假期就回去解解馋吧。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-14T08:55:00+08:00",
+    "User": "我室友阿哲昨天半夜还在打游戏，吵得我没睡好。",
+    "Assistant": "那今天得找机会跟他说一声，戴耳机或者早点结束都行，睡眠很重要。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-14T12:05:00+08:00",
+    "User": "今天没下雨，心情不错。",
+    "Assistant": "天气好心情也轻快，下午可以出去走走晒晒太阳。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-14T19:30:00+08:00",
+    "User": "我最近在学吉他，手指按得有点疼。",
+    "Assistant": "刚学都会疼，等指尖起了茧就好了，别一次练太久。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-15T09:20:00+08:00",
+    "User": "我对花粉有点过敏，春天出门得戴口罩。",
+    "Assistant": "那你春天出门记得把口罩戴上，回家也洗把脸，会舒服很多。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-15T14:00:00+08:00",
+    "User": "下午开了三个会，脑子都木了。",
+    "Assistant": "连开三个会确实累，起来接杯水走两步，让脑子缓一缓。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-15T22:15:00+08:00",
+    "User": "我打算今年年底前转到 AI 方向，最近在补机器学习。",
+    "Assistant": "这个目标很棒，每天进步一点点就好，我相信你能转过去的。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-16T10:30:00+08:00",
+    "User": "我下个月要搬家，最近正在看房子。",
+    "Assistant": "搬家最累人了，提前列个清单，别把东西落下了。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-16T20:40:00+08:00",
+    "User": "我妈生日是 5 月 2 日，我得提前想想送什么礼物。",
+    "Assistant": "5 月 2 日我记下了，现在开始想确实来得及，投其所好最重要。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-17T08:30:00+08:00",
+    "User": "早，今天起得有点早。",
+    "Assistant": "早起一天感觉赚到了吧，记得吃早饭。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-17T12:20:00+08:00",
+    "User": "中午点了个外卖，送来都凉了。",
+    "Assistant": "凉了就凑合吃点，晚上再吃点热乎的补回来。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-17T18:10:00+08:00",
+    "User": "写代码的时候我喜欢听 lo-fi，比较不打扰思路。",
+    "Assistant": "lo-fi 确实适合写代码，节奏稳定又不抢注意力。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-17T21:00:00+08:00",
+    "User": "今晚跟朋友打了会儿游戏，输多赢少。",
+    "Assistant": "玩游戏嘛，开心就好，下次赢回来。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-18T09:00:00+08:00",
+    "User": "昨晚睡了七个小时，今天精神多了。",
+    "Assistant": "七个小时刚刚好，继续保持，别再熬到一点啦。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-18T13:30:00+08:00",
+    "User": "这周是冲刺周，估计每天都要忙到很晚。",
+    "Assistant": "冲刺周辛苦啦，忙归忙，饭还是要按时吃的。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-18T20:00:00+08:00",
+    "User": "今天试了冷萃咖啡，也挺好喝的，不过还是美式更提神。",
+    "Assistant": "冷萃更顺口，美式更清醒，看你是要口感还是要效率啦。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-19T08:40:00+08:00",
+    "User": "我最近总是忘事，你以后多提醒我一点。",
+    "Assistant": "没问题，重要的事我都帮你记着，你也别给自己太大压力。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-19T12:00:00+08:00",
+    "User": "中午跟同事一起吃的饭，聊了聊最近的项目。",
+    "Assistant": "跟同事聊聊天挺好的，有些问题聊着聊着就有思路了。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-19T19:30:00+08:00",
+    "User": "我在杭州工作，这边秋天还挺舒服的。",
+    "Assistant": "杭州的秋天确实舒服，有空去西湖边走走，别总闷在屋里。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-20T09:10:00+08:00",
+    "User": "下周三的羽毛球改到周四了，群里临时通知的。",
+    "Assistant": "好，那周四晚上我提醒你带拍子，别记错日子。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-20T15:00:00+08:00",
+    "User": "代码终于上线了，松了口气。",
+    "Assistant": "恭喜上线！今晚可以早点休息，奖励一下自己。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-20T22:00:00+08:00",
+    "User": "我睡觉前喜欢听会儿播客，容易入睡。",
+    "Assistant": "听着播客入睡挺放松的，记得设个定时关闭，别放一整晚。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-21T08:30:00+08:00",
+    "User": "早呀，今天天气不错。",
+    "Assistant": "早！天气好就多晒晒太阳，心情也会跟着好起来。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-21T12:30:00+08:00",
+    "User": "今天中午吃了火锅，一下子就想起了成都。",
+    "Assistant": "火锅就是有这种魔力，等放假回成都再吃个够。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-21T20:00:00+08:00",
+    "User": "室友阿哲下个月要搬走了，之后我就一个人住。",
+    "Assistant": "一个人住更自在，不过也要记得按时吃饭，别太冷清啦。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-21T22:30:00+08:00",
+    "User": "搬家公司已经约好了，定在下周六。",
+    "Assistant": "那这周末可以先收拾不常用的东西，免得到时候手忙脚乱。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  },
+  {
+    "Type": "conversation",
+    "Time": "2026-10-22T09:00:00+08:00",
+    "User": "谢谢你一直陪我聊天，有你在感觉没那么累了。",
+    "Assistant": "能陪着小林我也很开心，以后累的时候就来找我说说话吧。",
+    "Content": "",
+    "Importance": 0,
+    "IsSummary": false,
+    "RealtimeExtracted": false
+  }
+]
