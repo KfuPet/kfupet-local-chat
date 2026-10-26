@@ -228,8 +228,8 @@ namespace kfupet_local_chat.Services
             return MemoryExtractionPrompt.ParseItems(raw);
         }
 
-        /// <summary>ScoreContentAsync：对单条总结内容重新评分。</summary>
-        private async Task<int> ScoreContentAsync(string content, CancellationToken cancellationToken)
+        /// <summary>ScoreContentAsync：对单条内容重新评分；控制台也可单独调用这一调用点。</summary>
+        public async Task<int> ScoreContentAsync(string content, CancellationToken cancellationToken)
         {
             var raw = await _runtime.InferAsync(
                 ArchiveMemoryPrompt.BuildScoreSystemPrompt(),
@@ -240,8 +240,8 @@ namespace kfupet_local_chat.Services
             return MemoryExtractionPrompt.ParseScore(raw);
         }
 
-        /// <summary>SummarizeAsync：把多条低重要性信息总结成一句话。</summary>
-        private async Task<string> SummarizeAsync(
+        /// <summary>SummarizeAsync：把多条低重要性信息总结成一句话；控制台也可单独调用这一调用点。</summary>
+        public async Task<string> SummarizeAsync(
             IReadOnlyList<string> contents,
             CancellationToken cancellationToken)
         {

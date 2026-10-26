@@ -38,7 +38,7 @@
                     <StackPanel>
                     <Grid Margin="0,0,0,14">
                         <TextBlock Text="调用点" Style="{StaticResource SectionTitle}" />
-                        <TextBlock Text="对话与记忆已接入" FontSize="11"
+                        <TextBlock Text="全部已接入" FontSize="11"
                                    Foreground="{StaticResource FaintBrush}" HorizontalAlignment="Right"
                                    VerticalAlignment="Center" />
                     </Grid>
@@ -73,13 +73,15 @@
                     <Button x:Name="ArchiveExtractButton" Content="归档批量提炼" Click="OnArchiveExtractClick"
                             Style="{StaticResource GhostButton}"
                             Margin="0,0,0,8" HorizontalContentAlignment="Left" Padding="14,8" />
-                    <Button Content="单条重评分" Click="OnShellCallClick" Style="{StaticResource GhostButton}"
+                    <Button x:Name="ScoreButton" Content="单条重评分" Click="OnScoreContentClick"
+                            Style="{StaticResource GhostButton}"
                             Margin="0,0,0,8" HorizontalContentAlignment="Left" Padding="14,8" />
-                    <Button Content="多条总结" Click="OnShellCallClick" Style="{StaticResource GhostButton}"
+                    <Button x:Name="SummarizeButton" Content="多条总结" Click="OnSummarizeClick"
+                            Style="{StaticResource GhostButton}"
                             HorizontalContentAlignment="Left" Padding="14,8" />
 
                     <TextBlock Style="{StaticResource HintText}" Margin="0,16,0,0"
-                               Text="调用点与主项目的记忆系统、触摸反应一一对应，接入后可直接观察本地模型输出。" />
+                               Text="1.7B 仅支持短句类调用与单条评分；信息提取与多条总结请切换到 4B 或 8B。" />
                     </StackPanel>
                 </ScrollViewer>
             </Border>

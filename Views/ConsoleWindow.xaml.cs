@@ -7,10 +7,21 @@ using kfupet_local_chat.Services;
 
 namespace kfupet_local_chat.Views
 {
-    /// <summary>调试控制台：按主项目的模型调用点逐项接入；触摸反应等 4 项与归档批量提炼已接入本地推理。</summary>
+    /// <summary>调试控制台：按主项目的模型调用点逐项接入，全部调用点均走真实本地推理。</summary>
     public partial class ConsoleWindow : Window
     {
         private static readonly Brush OutputBrush = new SolidColorBrush(Color.FromRgb(0x52, 0x52, 0x5B));
+
+        /// <summary>没有归档数据时“单条重评分”使用的固定演示内容，与主对话测试数据保持一致。</summary>
+        private const string DemoScoreContent = "主人喜欢喝不加糖的美式咖啡，每天下午都要来一杯。";
+
+        /// <summary>归档里低重要性条目不足 2 条时“多条总结”使用的固定演示片段。</summary>
+        private static readonly string[] DemoSummaryFragments =
+        {
+            "主人今天出门忘带伞，回来时淋了点雨。",
+            "晚饭点了一家新开的外卖，味道一般。",
+            "今天开会开到很晚，回家已经快十点。"
+        };
 
         private readonly LocalModelRuntime _runtime;
         private readonly DataSourceCard? _dataSource;
@@ -65,6 +76,12 @@ namespace kfupet_local_chat.Views
         {
             if (_analyzingArchive)
             {
+                return;
+            }
+
+            if (_inferring)
+            {
+                AppendOutput("归档批量提炼：其他调用点正在生成，请等它结束后再试。");
                 return;
             }
 
@@ -237,24 +254,161 @@ namespace kfupet_local_chat.Views
             }
         }
 
+        /// <summary>单条重评分：对归档里的总结条目逐条重新评分（对应 ScoreContentAsync）。</summary>
+        private async void OnScoreContentClick(object sender, RoutedEventArgs e)
+        {
+            if (!CanStartMemoryCall("单条重评分"))
+            {
+                return;
+            }
+
+            var active = new ModelDeploymentService().LoadActive();
+            var contents = (_dataSource?.Entries ?? Array.Empty<ArchiveMemoryEntry>())
+                .Where(entry => !entry.IsConversation && !string.IsNullOrWhiteSpace(entry.Content))
+                .Select(entry => entry.Content.Trim())
+                .ToList();
+
+            var usingDemo = contents.Count == 0;
+            if (usingDemo)
+            {
+                contents.Add(DemoScoreContent);
+            }
+
+            _inferring = true;
+            SetInferenceButtonsEnabled(false);
+
+            var service = new ArchiveAnalysisService(_runtime, new MemoryStoreService());
+            var stopwatch = Stopwatch.StartNew();
+            AppendOutput($"单条重评分：开始，共 {contents.Count} 条（{active?.ModelName ?? "当前模型"}）" +
+                         (usingDemo ? "；归档里没有总结条目，使用固定演示数据" : string.Empty));
+
+            try
+            {
+                for (var i = 0; i < contents.Count; i++)
+                {
+                    var itemWatch = Stopwatch.StartNew();
+                    var score = await Task.Run(
+                        () => service.ScoreContentAsync(contents[i], _analysisCts.Token));
+                    itemWatch.Stop();
+
+                    var verdict = score >= MemoryExtractionPrompt.MinImportance
+                        ? "达到阈值，可写入长期记忆"
+                        : "低于阈值，丢弃";
+                    AppendOutput($"单条重评分 {i + 1}/{contents.Count}：重要性 {score}/5" +
+                                 $"（{itemWatch.Elapsed.TotalSeconds:0.0} s）· {verdict}：{contents[i]}");
+                }
+
+                stopwatch.Stop();
+                AppendOutput($"单条重评分：完成，总耗时 {stopwatch.Elapsed.TotalSeconds:0.0} s");
+            }
+            catch (OperationCanceledException)
+            {
+                AppendOutput("单条重评分：已取消。");
+            }
+            catch (Exception ex)
+            {
+                AppendOutput($"单条重评分失败：{ex.Message}");
+            }
+            finally
+            {
+                _inferring = false;
+                SetInferenceButtonsEnabled(true);
+            }
+        }
+
+        /// <summary>多条总结：把归档里低于阈值的零散信息合成一句（对应 SummarizeAsync）。</summary>
+        private async void OnSummarizeClick(object sender, RoutedEventArgs e)
+        {
+            if (!CanStartMemoryCall("多条总结"))
+            {
+                return;
+            }
+
+            var active = new ModelDeploymentService().LoadActive();
+            if (!ModelCatalog.SupportsMemorySummarization(active))
+            {
+                AppendOutput($"多条总结：当前模型 {active?.ModelName ?? "未记录"} 无法稳定完成总结，" +
+                             "请切换到 4B 或 8B。");
+                return;
+            }
+
+            var contents = (_dataSource?.Entries ?? Array.Empty<ArchiveMemoryEntry>())
+                .Where(entry => !entry.IsConversation &&
+                                !string.IsNullOrWhiteSpace(entry.Content) &&
+                                entry.Importance < MemoryExtractionPrompt.MinImportance)
+                .Select(entry => entry.Content.Trim())
+                .ToList();
+
+            var usingDemo = contents.Count < 2;
+            if (usingDemo)
+            {
+                contents = DemoSummaryFragments.ToList();
+            }
+
+            _inferring = true;
+            SetInferenceButtonsEnabled(false);
+
+            var service = new ArchiveAnalysisService(_runtime, new MemoryStoreService());
+            var stopwatch = Stopwatch.StartNew();
+            AppendOutput($"多条总结：开始，共 {contents.Count} 条零散信息（{active?.ModelName ?? "当前模型"}）" +
+                         (usingDemo ? "；归档中低重要性条目不足 2 条，使用固定演示数据" : string.Empty));
+
+            try
+            {
+                var summary = await Task.Run(
+                    () => service.SummarizeAsync(contents, _analysisCts.Token));
+                stopwatch.Stop();
+
+                AppendOutput(string.IsNullOrWhiteSpace(summary)
+                    ? $"多条总结：模型没有返回有效总结（{stopwatch.Elapsed.TotalSeconds:0.0} s）"
+                    : $"多条总结：{summary}（{stopwatch.Elapsed.TotalSeconds:0.0} s）");
+            }
+            catch (OperationCanceledException)
+            {
+                AppendOutput("多条总结：已取消。");
+            }
+            catch (Exception ex)
+            {
+                AppendOutput($"多条总结失败：{ex.Message}");
+            }
+            finally
+            {
+                _inferring = false;
+                SetInferenceButtonsEnabled(true);
+            }
+        }
+
+        /// <summary>记忆类调用点共用的前置检查：归档提炼中、其他推理进行中、模型未启动都直接提示。</summary>
+        private bool CanStartMemoryCall(string label)
+        {
+            if (_analyzingArchive)
+            {
+                AppendOutput($"{label}：归档提炼正在进行，请等它结束后再试。");
+                return false;
+            }
+
+            if (_inferring)
+            {
+                return false;
+            }
+
+            if (!_runtime.IsRunning)
+            {
+                AppendOutput($"{label}：本地模型尚未启动，请先在主窗口点击「运行本地」。");
+                return false;
+            }
+
+            return true;
+        }
+
         private void SetInferenceButtonsEnabled(bool enabled)
         {
             TouchReactionButton.IsEnabled = enabled;
             SnapBackButton.IsEnabled = enabled;
             ProactiveButton.IsEnabled = enabled;
             NotificationButton.IsEnabled = enabled;
-        }
-
-        /// <summary>所有调用点共用的空壳入口：只回显调用了哪一项。</summary>
-        private void OnShellCallClick(object sender, RoutedEventArgs e)
-        {
-            if (sender is not Button button)
-            {
-                return;
-            }
-
-            var name = button.Content?.ToString() ?? "未命名调用";
-            AppendOutput($"{name}：空壳入口，逻辑待接入。");
+            ScoreButton.IsEnabled = enabled;
+            SummarizeButton.IsEnabled = enabled;
         }
 
         private void OnClearOutputClick(object sender, RoutedEventArgs e)

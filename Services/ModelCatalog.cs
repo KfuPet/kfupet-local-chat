@@ -35,7 +35,8 @@ namespace kfupet_local_chat.Services
                 CpuFallbackAllowed = true,
                 RequirementText = "无独显也可运行 · 最低内存 4 GB",
                 Note = "最轻量档，台词与情绪判断够用",
-                SupportsMemoryExtraction = false
+                SupportsMemoryExtraction = false,
+                SupportsMemorySummarization = false
             },
             new()
             {
@@ -103,6 +104,17 @@ namespace kfupet_local_chat.Services
             return FindByFileName(model.FileName)?.SupportsMemoryExtraction ?? true;
         }
 
+        /// <summary>按部署记录判断是否支持多条总结；1.7B 在调用点清单里标注为不可用。</summary>
+        public static bool SupportsMemorySummarization(DeployedModel? model)
+        {
+            if (model == null)
+            {
+                return false;
+            }
+
+            return FindByFileName(model.FileName)?.SupportsMemorySummarization ?? true;
+        }
+
         /// <summary>为当前硬件计算每个模型的运行状态，并选出推荐档（能流畅运行的最大模型）。</summary>
         public static IReadOnlyList<LocalModelOption> Recommend(HardwareInfo hardware)
         {
@@ -122,7 +134,8 @@ namespace kfupet_local_chat.Services
                 RequirementText = m.RequirementText,
                 Note = m.Note,
                 IsDefault = m.IsDefault,
-                SupportsMemoryExtraction = m.SupportsMemoryExtraction
+                SupportsMemoryExtraction = m.SupportsMemoryExtraction,
+                SupportsMemorySummarization = m.SupportsMemorySummarization
             }).ToList();
 
             foreach (var option in options)
